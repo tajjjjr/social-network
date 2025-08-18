@@ -22,15 +22,43 @@ const apiCall = async (endpoint, options = {}) => {
 export const postAPI = {
   createPost: async (formData) => {
     try {
-      const data = await apiCall("/posts", {
+      const response = await fetch(`${API_BASE}/posts`, {
         method: "POST",
+        credentials: "include",
         body: formData,
       });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const data = await response.json();
       return { success: true, data };
     } catch (error) {
       return {
         success: false,
         error: error.message || "Failed to create post",
+      };
+    }
+  },
+  createComment: async (postId, formData) => {
+    try {
+      const response = await fetch(`${API_BASE}/posts/${postId}/comments`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || "Failed to create comment",
       };
     }
   },
@@ -214,17 +242,29 @@ export const chatAPI = {
 
   // Mark notifications as read
   markNotificationsRead: () =>
-    apiCall("/api/notifications/read", { method: "POST" }),
+    apiCall('/api/notifications/read', { method: 'POST' }),
 
+  // Get unread chats
+  getUnreadChats: () =>
+    apiCall('/api/chats/unread'),
+
+  // Get unread chat count
+  getUnreadChatCount: () =>
+    apiCall('/api/chats/unread/count'),
+  
   // Get users the current user can message
-  getMessageableUsers: () => apiCall("/api/users/messageable"),
+  getMessageableUsers: () =>
+    apiCall('/api/users/messageable'),
+
+  getGroups: () =>
+    apiCall('/api/chats/groups'),
 };
 
 const fallbackAvatar =
   "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNGM0Y0RjYiLz4KPGNpcmNsZSBjeD0iMjAiIGN5PSIxNiIgcj0iNiIgZmlsbD0iIzlDQTNBRiIvPgo8cGF0aCBkPSJNMzIgMzJDMzIgMjYuNDc3MiAyNy41MjI4IDIyIDIyIDIySDE4QzEyLjQ3NzIgMjIgOCAyNi40NzcyIDggMzJWMzJIMzJWMzJaIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPgo=";
 
 export function fetchProfileImage(avatar) {
-  if (!avatar) return fallbackAvatar;
+  if (avatar == "no profile photo") return fallbackAvatar;
   return `${API_BASE}/avatar?avatar=${encodeURIComponent(avatar)}`;
 }
 
@@ -287,8 +327,22 @@ export async function updateProfile(profileData) {
 
 export const profileAPI = {
   getProfile: (userId) => apiCall(`/profile/${userId}`),
-  getFollowers: (userId) => apiCall(`/profile/${userId}/followers`),
-  getFollowing: (userId) => apiCall(`/profile/${userId}/followees`),
+  getFollowers: async (userId) => {
+    try {
+      const data = await apiCall(`/profile/${userId}/followers`);
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message || 'Failed to fetch followers' };
+    }
+  },
+  getFollowing: async (userId) => {
+    try {
+      const data = await apiCall(`/profile/${userId}/followees`);
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message || 'Failed to fetch following' };
+    }
+  },
   follow: (followeeid) =>
     apiCall("/follow", {
       method: "POST",
@@ -310,3 +364,8 @@ export const profileAPI = {
   getFollowRequestId,
   cancelFollowRequest,
 };
+
+export function fetchGroupImage(avatar) {
+  if (!avatar) return fallbackAvatar;
+  return `${API_BASE}/group-avatar?avatar=${encodeURIComponent(avatar)}`;
+}

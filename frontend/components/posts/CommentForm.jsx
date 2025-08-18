@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { ImageIcon, SendIcon, X } from "lucide-react";
-import { createComment } from "../../lib/auth";
+import { postAPI } from "../../lib/api";
+import { profileAPI } from "../../lib/api";
 
 const CommentForm = ({ postId, user, onCommentCreated }) => {
   const [content, setContent] = useState("");
@@ -79,7 +80,7 @@ const CommentForm = ({ postId, user, onCommentCreated }) => {
         formData.append("image", selectedImage);
       }
 
-      const result = await createComment(postId, formData);
+      const result = await postAPI.createComment(postId, formData);
 
       if (result.success) {
         // Reset form
@@ -126,10 +127,7 @@ const CommentForm = ({ postId, user, onCommentCreated }) => {
         <div className="flex items-start gap-3 rounded-xl p-3" style={{ backgroundColor: 'var(--secondary-background)' }}>
           {/* User Avatar */}
           <img 
-            src={user?.avatar && user.avatar !== "no profile photo" 
-              ? `http://localhost:9000/avatar?avatar=${user.avatar}` 
-              : "http://localhost:9000/avatar?avatar=user-profile-circle-svgrepo-com.svg"
-            }
+            src={profileAPI.fetchProfileImage(user?.avatar || '')}
             alt={user?.nickname || `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'User'}
             className="w-10 h-10 rounded-full object-cover flex-shrink-0" 
           />

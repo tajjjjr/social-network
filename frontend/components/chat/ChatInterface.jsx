@@ -7,13 +7,15 @@ import { notificationService } from '../../lib/notificationService';
 import ClientDate from '../common/ClientDate';
 import Picker from 'emoji-picker-react';
 
-const ChatInterface = ({ user, connectionStatus = 'disconnected', initialChat = null, showSidebar = true }) => {
+const ChatInterface = ({ user, connectionStatus = 'disconnected', recipient = null, showSidebar = true }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   // { type: 'private', id: userId } or { type: 'group', id: groupId }
   const [activeChat, setActiveChat] = useState(null);
+  const [activeChatName, setActiveChatName] = useState('');
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const [messageableUsers, setMessageableUsers] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const messagesEndRef = useRef(null);
   const activeChatRef = useRef(activeChat);
@@ -96,7 +98,6 @@ const ChatInterface = ({ user, connectionStatus = 'disconnected', initialChat = 
     });
   }, []);
 
-  // Set up WebSocket handlers after all handlers are defined
   useEffect(() => {
     // Set up message handlers only (connection is managed by parent)
     wsService.onMessage('private', handlePrivateMessage);
@@ -111,10 +112,11 @@ const ChatInterface = ({ user, connectionStatus = 'disconnected', initialChat = 
     // Load initial online users
     loadOnlineUsers();
     loadMessageableUsers();
+    loadGroups();
 
-    // If initialChat is provided, automatically load that chat
-    if (initialChat) {
-      loadChatHistory(initialChat.type, initialChat.id);
+    // If recipient is provided, automatically load that chat
+    if (recipient) {
+      loadChatHistory(recipient.type, recipient.id);
     }
 
     return () => {
@@ -128,7 +130,7 @@ const ChatInterface = ({ user, connectionStatus = 'disconnected', initialChat = 
       notificationService.removeHandler('user_connected', handleUserConnected);
       notificationService.removeHandler('user_disconnected', handleUserDisconnected);
     };
-  }, [initialChat, handlePrivateMessage, handleGroupMessage, handleBroadcastMessage, handleNotification, handleUserConnected, handleUserDisconnected]);
+  }, [recipient, handlePrivateMessage, handleGroupMessage, handleBroadcastMessage, handleNotification, handleUserConnected, handleUserDisconnected]);
 
   const loadOnlineUsers = async () => {
     try {
@@ -146,6 +148,15 @@ const ChatInterface = ({ user, connectionStatus = 'disconnected', initialChat = 
       setMessageableUsers(users || []);
     } catch (error) {
       console.error('Failed to load messageable users:', error);
+    }
+  };
+
+  const loadGroups = async () => {
+    try {
+      const groupData = await chatAPI.getGroups();
+      setGroups(groupData || []);
+    } catch (error) {
+      console.error('Failed to load groups:', error);
     }
   };
 
@@ -190,22 +201,42 @@ const ChatInterface = ({ user, connectionStatus = 'disconnected', initialChat = 
   const loadChatHistory = async (chatType, chatId) => {
     try {
       let history;
+      let chatName = '';
       if (chatType === 'private') {
         history = await chatAPI.getPrivateMessages(chatId);
+        const user = messageableUsers.find(u => u.id === chatId);
+        if (user) {
+          chatName = user.nickname;
+        }
       } else if (chatType === 'group') {
         history = await chatAPI.getGroupMessages(chatId);
+        const group = groups.find(g => g.id === chatId);
+        if (group) {
+          chatName = group.name;
+        }
       }
-      setMessages(history || []);
+      let finalHistory = history || [];
+
+      // If it's a group chat and no history, add a welcome message
+      if (chatType === 'group' && finalHistory.length === 0) {
+        finalHistory = [{
+          id: 'welcome',
+          content: `Welcome to ${chatName}! This is the beginning of your group chat.`, 
+          from: 'system',
+          timestamp: Date.now() / 1000,
+          isWelcome: true,
+        }];
+      }
+
+      setMessages(finalHistory);
       setActiveChat({ type: chatType, id: chatId });
+      setActiveChatName(chatName);
     } catch (error) {
       console.error('Failed to load chat history:', error);
-      // If we get a 403 (permission denied), still allow the chat to open with empty history
+      // If we get an error, still allow the chat to open with empty history
       // This enables users to start new conversations
-      if (error.message.includes('403')) {
-        console.log('No existing chat history or permission denied - starting fresh chat');
-        setMessages([]);
-        setActiveChat({ type: chatType, id: chatId });
-      }
+      setMessages([]);
+      setActiveChat({ type: chatType, id: chatId });
     }
   };
 
@@ -246,12 +277,15 @@ const ChatInterface = ({ user, connectionStatus = 'disconnected', initialChat = 
           {/* Group Chats */}
           <div>
             <h4 className="text-sm text-gray-600 mb-2">Groups</h4>
-            <button
-              onClick={() => loadChatHistory('group', 1)} // Example group ID
-              className="w-full text-left p-2 hover:bg-gray-100 rounded"
-            >
-              Test Group
-            </button>
+            {groups.map((group) => (
+              <button
+                key={group.id}
+                onClick={() => loadChatHistory('group', group.id)} // Example group ID
+                className="w-full text-left p-2 hover:bg-gray-100 rounded"
+              >
+                {group.name}
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -265,11 +299,11 @@ const ChatInterface = ({ user, connectionStatus = 'disconnected', initialChat = 
               <div className="border-b border-gray-200 p-3 bg-gray-50">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-semibold">
-                    {initialChat?.nickname?.charAt(0)?.toUpperCase() || 'U'}
+                    {recipient?.name?.charAt(0)?.toUpperCase() || 'U'}
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-800">
-                      {initialChat?.nickname || 'User'}
+                      {recipient?.name || 'User'}
                     </h3>
                     <p className="text-xs text-gray-500">
                       {connectionStatus === 'connected' ? 'Online' : 'Offline'}
@@ -285,6 +319,16 @@ const ChatInterface = ({ user, connectionStatus = 'disconnected', initialChat = 
                 const isSender = message.from === user.id;
                 const isBroadcast = message.isBroadcast;
                 const isOptimistic = message.isOptimistic;
+                const isWelcome = message.isWelcome;
+
+                if (isWelcome) {
+                  return (
+                    <div key={message.id} className="text-center text-gray-500 italic mb-4">
+                      {message.content}
+                    </div>
+                  );
+                }
+
                 return (
                   <div
                     key={`${message.timestamp}-${message.from}-${index}`}

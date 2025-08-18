@@ -296,7 +296,7 @@ const PostList = ({ refreshTrigger, user, posts: initialPosts, profileView = fal
             <div className="flex items-center gap-2">
               <div className="relative">
                 <img
-                  src={post.author?.avatar && post.author.avatar !== "no profile photo" ? `http://localhost:9000/avatar?avatar=${post.author.avatar}` : "http://localhost:9000/avatar?avatar=user-profile-circle-svgrepo-com.svg"}
+                  src={profileAPI.fetchProfileImage(post.author?.avatar || '')}
                   alt={post.author?.nickname || `${post.author?.first_name || ''} ${post.author?.last_name || ''}`.trim() || 'User'}
                   className="w-10 h-10 rounded-full"
                 />

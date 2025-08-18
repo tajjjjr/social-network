@@ -50,7 +50,10 @@ const Header = ({ user = null }) => {
       {/* Navigation Icons - Centered absolutely */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-6 z-0">
         {/* Home Icon */}
-        <div className="flex flex-col items-center cursor-pointer">
+        <div
+          className="flex flex-col items-center cursor-pointer"
+          onClick={() => router.push('/me')}
+        >
           <HomeIcon className="w-6 h-6" style={{ color: 'var(--primary-accent)' }} />
           <span className="text-xs" style={{ color: 'var(--primary-text)' }}>Home</span>
         </div>
@@ -107,8 +110,8 @@ const Header = ({ user = null }) => {
           )}
         </div>
 
-        {/* Groups Icon */}
-        <div className="flex flex-col items-center cursor-pointer">
+        {/* Groups Icon (Disabled) */}
+        <div className="flex flex-col items-center cursor-not-allowed opacity-50">
           <UsersIcon className="w-6 h-6" style={{ color: 'var(--primary-text)' }} />
           <span className="text-xs" style={{ color: 'var(--primary-text)' }}>Groups</span>
         </div>
@@ -125,12 +128,14 @@ const Header = ({ user = null }) => {
 
       {/* Profile Dropdown */}
       <div className="relative z-10" ref={profileRef}>
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push('/me')}>
+          <img src={profileAPI.fetchProfileImage(user.avatar ? user.avatar : '')} alt="Profile" className="w-8 h-8 rounded-full" />
+          <span className="text-sm font-medium">{user.nickname}</span>
+        </div>
         <button
           className="flex items-center gap-2 focus:outline-none"
           onClick={() => setDropdownOpen((open) => !open)}
         >
-          <img src={profileAPI.fetchProfileImage(user.avatar ? user.avatar : '')} alt="Profile" className="w-8 h-8 rounded-full" />
-          <span className="text-sm font-medium">{user.nickname}</span>
           <ChevronDownIcon className="w-4 h-4" />
         </button>
         {dropdownOpen && (

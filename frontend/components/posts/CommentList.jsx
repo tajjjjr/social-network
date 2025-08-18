@@ -190,9 +190,8 @@ const CommentList = ({ postId, newComment, user }) => {
         <div key={comment.id} className="flex gap-3">
           {/* Comment Author Avatar */}
           <img
-            src={comment.author?.avatar && comment.author.avatar !== "no profile photo"
-              ? `http://localhost:9000/avatar?avatar=${comment.author.avatar}`
-              : "http://localhost:9000/avatar?avatar=user-profile-circle-svgrepo-com.svg"
+            src={
+              profileAPI.fetchProfileImage(comment.author?.avatar || '')
             }
             alt={getDisplayName(comment.author)}
             className="w-8 h-8 rounded-full object-cover flex-shrink-0"
