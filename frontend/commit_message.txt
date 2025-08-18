@@ -1,0 +1,4 @@
+Feat: Display followers list in UserListModal
+
+- Modified `UserListModal` to fetch and display the current user's followers.
+- The followers list is sorted in ascending order by nickname.
