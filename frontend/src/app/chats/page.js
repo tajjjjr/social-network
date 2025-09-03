@@ -19,44 +19,44 @@ const ChatsPage = ({ user }) => {
   const [showUserListModal, setShowUserListModal] = useState(false);
   const router = useRouter();
 
-  const loadData = useCallback(async () => {
-    try {
-      setLoading(true);
-      let unread = { count: 0 };
-      try {
-        unread = await chatAPI.getUnreadChatCount();
-      } catch (e) {
-        console.error("Failed to fetch unread chat count:", e);
-      }
-      setUnreadCount(unread.count);
-
-      if (currentView === 'All Chats') {
-        const users = await chatAPI.getMessageableUsers();
-        setMessageableUsers(users || []);
-        const groupData = await chatAPI.getGroups();
-        setGroups(groupData || []);
-      } else if (currentView === 'Unread') {
-        let unreadChats = [];
-        try {
-          unreadChats = await chatAPI.getUnreadChats();
-        } catch (e) {
-          console.error("Failed to fetch unread chats:", e);
-        }
-        setMessageableUsers(unreadChats || []);
-        setGroups([]);
-      } else if (currentView === 'Groups') {
-        const groupData = await chatAPI.getGroups();
-        setGroups(groupData || []);
-        setMessageableUsers([]);
-      }
-    } catch (error) {
-      console.error(`Failed to load data for ${currentView}:`, error);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentView]);
-
   useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        let unread = { count: 0 };
+        try {
+          unread = await chatAPI.getUnreadChatCount();
+        } catch (e) {
+          console.error("Failed to fetch unread chat count:", e);
+        }
+        setUnreadCount(unread.count);
+
+        if (currentView === 'All Chats') {
+          const users = await chatAPI.getMessageableUsers();
+          setMessageableUsers(users || []);
+          const groupData = await chatAPI.getGroups();
+          setGroups(groupData || []);
+        } else if (currentView === 'Unread') {
+          let unreadChats = [];
+          try {
+            unreadChats = await chatAPI.getUnreadChats();
+          } catch (e) {
+            console.error("Failed to fetch unread chats:", e);
+          }
+          setMessageableUsers(unreadChats || []);
+          setGroups([]);
+        } else if (currentView === 'Groups') {
+          const groupData = await chatAPI.getGroups();
+          setGroups(groupData || []);
+          setMessageableUsers([]);
+        }
+      } catch (error) {
+        console.error(`Failed to load data for ${currentView}:`, error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadData();
   }, [currentView]);
 
@@ -162,7 +162,7 @@ const ChatsPage = ({ user }) => {
 
 const ChatItem = ({ item, type, onSelect }) => {
   const isGroup = type === 'group';
-  const avatar = isGroup ? chatAPI.fetchGroupImage(item.avatar || '') : profileAPI.fetchProfileImage(item.avatar || '');
+  const avatar = isGroup ? profileAPI.fetchProfileImage(item.avatar || '') : profileAPI.fetchProfileImage(item.avatar || '');
   const name = isGroup ? item.name : item.nickname;
 
   return (
