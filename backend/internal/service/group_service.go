@@ -24,3 +24,11 @@ func (s *groupService) GetGroupByID(groupID int64) (*models.Group, error) {
 func (s *groupService) SearchPublicGroups(query string) ([]*models.Group, error) {
 	return s.groupStore.SearchPublicGroups(query)
 }
+
+func (s *groupService) GetAllPublicGroups() ([]*models.Group, error) {
+	return s.groupStore.GetAllPublicGroups()
+}
+
+func (s *groupService) GetUserGroups(userID int64) ([]*models.Group, error) {
+	return s.groupStore.GetUserGroups(userID)
+}
