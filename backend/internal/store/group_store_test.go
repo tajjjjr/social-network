@@ -14,15 +14,27 @@ func setupTestDB(t *testing.T) *sql.DB {
 		t.Fatal(err)
 	}
 
-	createTableSQL := `CREATE TABLE groups (
+	createGroupsTableSQL := `CREATE TABLE Groups (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		creator_id INTEGER NOT NULL,
 		title TEXT NOT NULL,
 		description TEXT,
-		privacy TEXT NOT NULL DEFAULT 'public'
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);`
 
-	_, err = db.Exec(createTableSQL)
+	createGroupMembersTableSQL := `CREATE TABLE Group_Members (
+		group_id INTEGER NOT NULL,
+		user_id INTEGER NOT NULL,
+		is_accepted BOOLEAN DEFAULT 0,
+		PRIMARY KEY (group_id, user_id)
+	);`
+
+	_, err = db.Exec(createGroupsTableSQL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = db.Exec(createGroupMembersTableSQL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +64,7 @@ func TestCreateGroup(t *testing.T) {
 	}
 
 	var title string
-	err = db.QueryRow("SELECT title FROM groups WHERE id = ?", createdGroup.ID).Scan(&title)
+	err = db.QueryRow("SELECT title FROM Groups WHERE id = ?", createdGroup.ID).Scan(&title)
 	if err != nil {
 		t.Fatalf("Failed to query created group: %v", err)
 	}

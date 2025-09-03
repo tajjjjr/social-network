@@ -15,11 +15,11 @@ import (
 
 // MockGroupService is a mock implementation of the GroupService for testing.
 type MockGroupService struct {
-	CreateGroupFunc      func(group *models.Group) (*models.Group, error)
-	GetGroupByIDFunc     func(groupID int64) (*models.Group, error)
+	CreateGroupFunc        func(group *models.Group) (*models.Group, error)
+	GetGroupByIDFunc       func(groupID int64) (*models.Group, error)
 	SearchPublicGroupsFunc func(query string) ([]*models.Group, error)
 	GetAllPublicGroupsFunc func() ([]*models.Group, error)
-	GetUserGroupsFunc    func(userID int64) ([]*models.Group, error)
+	GetUserGroupsFunc      func(userID int64) ([]*models.Group, error)
 }
 
 func (m *MockGroupService) CreateGroup(group *models.Group) (*models.Group, error) {
@@ -367,7 +367,7 @@ func TestApproveJoinRequest(t *testing.T) {
 		req.SetPathValue("requestID", "1")
 
 		// Add user ID to context (as int for ApproveJoinRequest)
-		ctx := context.WithValue(req.Context(), utils.User_id, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -405,7 +405,7 @@ func TestApproveJoinRequest(t *testing.T) {
 		req.SetPathValue("requestID", "invalid")
 
 		// Add user ID to context (as int for ApproveJoinRequest)
-		ctx := context.WithValue(req.Context(), utils.User_id, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -463,7 +463,7 @@ func TestApproveJoinRequest(t *testing.T) {
 		req.SetPathValue("requestID", "1")
 
 		// Add user ID to context (as int for ApproveJoinRequest)
-		ctx := context.WithValue(req.Context(), utils.User_id, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -498,7 +498,7 @@ func TestRejectJoinRequest(t *testing.T) {
 		req.SetPathValue("requestID", "1")
 
 		// Add user ID to context (as int for RejectJoinRequest)
-		ctx := context.WithValue(req.Context(), utils.User_id, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -536,7 +536,7 @@ func TestRejectJoinRequest(t *testing.T) {
 		req.SetPathValue("requestID", "invalid")
 
 		// Add user ID to context (as int for RejectJoinRequest)
-		ctx := context.WithValue(req.Context(), utils.User_id, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -594,7 +594,7 @@ func TestRejectJoinRequest(t *testing.T) {
 		req.SetPathValue("requestID", "1")
 
 		// Add user ID to context (as int for RejectJoinRequest)
-		ctx := context.WithValue(req.Context(), utils.User_id, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -633,7 +633,7 @@ func TestSendGroupChatMessage(t *testing.T) {
 		req.SetPathValue("groupID", "1")
 
 		// Add user ID to context (as int for SendGroupChatMessage)
-		ctx := context.WithValue(req.Context(), utils.User_id, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -671,7 +671,7 @@ func TestSendGroupChatMessage(t *testing.T) {
 		req.SetPathValue("groupID", "invalid")
 
 		// Add user ID to context (as int for SendGroupChatMessage)
-		ctx := context.WithValue(req.Context(), utils.User_id, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -699,7 +699,7 @@ func TestSendGroupChatMessage(t *testing.T) {
 		req.SetPathValue("groupID", "1")
 
 		// Add user ID to context (as int for SendGroupChatMessage)
-		ctx := context.WithValue(req.Context(), utils.User_id, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -761,7 +761,7 @@ func TestSendGroupChatMessage(t *testing.T) {
 		req.SetPathValue("groupID", "1")
 
 		// Add user ID to context (as int for SendGroupChatMessage)
-		ctx := context.WithValue(req.Context(), utils.User_id, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -802,7 +802,7 @@ func TestGetGroupChatMessages(t *testing.T) {
 		req.SetPathValue("groupID", "1")
 
 		// Add user ID to context (as int for GetGroupChatMessages)
-		ctx := context.WithValue(req.Context(), utils.User_id, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -842,7 +842,7 @@ func TestGetGroupChatMessages(t *testing.T) {
 		req.SetPathValue("groupID", "invalid")
 
 		// Add user ID to context (as int for GetGroupChatMessages)
-		ctx := context.WithValue(req.Context(), utils.User_id, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -902,7 +902,7 @@ func TestGetGroupChatMessages(t *testing.T) {
 		req.SetPathValue("groupID", "1")
 
 		// Add user ID to context (as int for GetGroupChatMessages)
-		ctx := context.WithValue(req.Context(), utils.User_id, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -944,7 +944,7 @@ func TestGetGroupChatMessages(t *testing.T) {
 		req.SetPathValue("groupID", "1")
 
 		// Add user ID to context (as int for GetGroupChatMessages)
-		ctx := context.WithValue(req.Context(), utils.User_id, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
