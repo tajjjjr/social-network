@@ -11,9 +11,6 @@ import (
 	"github.com/tajjjjr/social-network/backend/pkg/utils"
 )
 
-
-
-
 type GroupHandler struct {
 	groupService            service.GroupService
 	groupRequestService     service.GroupRequestService
@@ -68,7 +65,7 @@ func (h *GroupHandler) SendJoinRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-		request, err := h.groupRequestService.SendJoinRequest(int64(groupID), int64(userID))
+	request, err := h.groupRequestService.SendJoinRequest(int64(groupID), int64(userID))
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to send join request: %v", err), http.StatusInternalServerError)
 		return

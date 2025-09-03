@@ -142,9 +142,9 @@ func GetUserIDFromSession(sessionID string, db *sql.DB) (int64, error) {
 func (s *AuthStore) EditProfile(user *models.User, userid int64) error {
 	var err error
 	if *user.Avatar != "no profile photo" {
-		_, err= s.DB.Exec("UPDATE Users SET email = ?, first_name = ?, last_name = ?, date_of_birth = ?, nickname = ?, about_me = ?, is_profile_public = ?, avatar = ? WHERE id = ?", user.Email, user.FirstName, user.LastName, user.DateOfBirth, user.Nickname, user.AboutMe, user.IsProfilePublic, user.Avatar, userid)
+		_, err = s.DB.Exec("UPDATE Users SET email = ?, first_name = ?, last_name = ?, date_of_birth = ?, nickname = ?, about_me = ?, is_profile_public = ?, avatar = ? WHERE id = ?", user.Email, user.FirstName, user.LastName, user.DateOfBirth, user.Nickname, user.AboutMe, user.IsProfilePublic, user.Avatar, userid)
 	} else {
-		_, err= s.DB.Exec("UPDATE Users SET email = ?, first_name = ?, last_name = ?, date_of_birth = ?, nickname = ?, about_me = ?, is_profile_public = ? WHERE id = ?", user.Email, user.FirstName, user.LastName, user.DateOfBirth, user.Nickname, user.AboutMe, user.IsProfilePublic, userid)
+		_, err = s.DB.Exec("UPDATE Users SET email = ?, first_name = ?, last_name = ?, date_of_birth = ?, nickname = ?, about_me = ?, is_profile_public = ? WHERE id = ?", user.Email, user.FirstName, user.LastName, user.DateOfBirth, user.Nickname, user.AboutMe, user.IsProfilePublic, userid)
 	}
 	return err
 }
