@@ -231,3 +231,37 @@ func (h *GroupHandler) SearchPublicGroups(w http.ResponseWriter, r *http.Request
 		return
 	}
 }
+
+func (h *GroupHandler) GetAllPublicGroups(w http.ResponseWriter, r *http.Request) {
+	groups, err := h.groupService.GetAllPublicGroups()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to get public groups: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(groups); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *GroupHandler) GetUserGroups(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(userIDKey).(int64)
+	if !ok {
+		http.Error(w, "User ID not found in context", http.StatusUnauthorized)
+		return
+	}
+
+	groups, err := h.groupService.GetUserGroups(userID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to get user groups: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(groups); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
+		return
+	}
+}
