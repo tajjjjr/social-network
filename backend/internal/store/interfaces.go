@@ -25,6 +25,8 @@ type GroupStore interface {
 	CreateGroup(group *models.Group) (*models.Group, error)
 	GetGroupByID(groupID int64) (*models.Group, error)
 	SearchPublicGroups(query string) ([]*models.Group, error)
+	GetAllPublicGroups() ([]*models.Group, error)
+	GetUserGroups(userID int64) ([]*models.Group, error)
 }
 
 type GroupRequestStore interface {
