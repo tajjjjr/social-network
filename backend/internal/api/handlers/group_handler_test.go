@@ -17,6 +17,8 @@ type MockGroupService struct {
 	CreateGroupFunc      func(group *models.Group) (*models.Group, error)
 	GetGroupByIDFunc     func(groupID int64) (*models.Group, error)
 	SearchPublicGroupsFunc func(query string) ([]*models.Group, error)
+	GetAllPublicGroupsFunc func() ([]*models.Group, error)
+	GetUserGroupsFunc    func(userID int64) ([]*models.Group, error)
 }
 
 func (m *MockGroupService) CreateGroup(group *models.Group) (*models.Group, error) {
@@ -38,6 +40,20 @@ func (m *MockGroupService) SearchPublicGroups(query string) ([]*models.Group, er
 		return m.SearchPublicGroupsFunc(query)
 	}
 	return nil, errors.New("SearchPublicGroups not implemented")
+}
+
+func (m *MockGroupService) GetAllPublicGroups() ([]*models.Group, error) {
+	if m.GetAllPublicGroupsFunc != nil {
+		return m.GetAllPublicGroupsFunc()
+	}
+	return nil, errors.New("GetAllPublicGroups not implemented")
+}
+
+func (m *MockGroupService) GetUserGroups(userID int64) ([]*models.Group, error) {
+	if m.GetUserGroupsFunc != nil {
+		return m.GetUserGroupsFunc(userID)
+	}
+	return nil, errors.New("GetUserGroups not implemented")
 }
 
 // MockGroupRequestService is a mock implementation of the GroupRequestService for testing.
