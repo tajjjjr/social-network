@@ -8,11 +8,11 @@ import (
 
 	"github.com/tajjjjr/social-network/backend/internal/models"
 	"github.com/tajjjjr/social-network/backend/internal/service"
+	"github.com/tajjjjr/social-network/backend/pkg/utils"
 )
 
 
-type contextKey string
-const userIDKey contextKey = "userID"
+
 
 type GroupHandler struct {
 	groupService            service.GroupService
@@ -31,7 +31,7 @@ func (h *GroupHandler) CreateGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	creatorID, ok := r.Context().Value(userIDKey).(int64)
+	creatorID, ok := r.Context().Value(utils.User_id).(int64)
 	if !ok {
 		http.Error(w, "User ID not found in context", http.StatusUnauthorized)
 		return
@@ -62,7 +62,7 @@ func (h *GroupHandler) SendJoinRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, ok := r.Context().Value(userIDKey).(int64)
+	userID, ok := r.Context().Value(utils.User_id).(int64)
 	if !ok {
 		http.Error(w, "User ID not found in context", http.StatusUnauthorized)
 		return
@@ -96,7 +96,7 @@ func (h *GroupHandler) ApproveJoinRequest(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	approverID, ok := r.Context().Value(userIDKey).(int)
+	approverID, ok := r.Context().Value(utils.User_id).(int64)
 	if !ok {
 		http.Error(w, "Approver ID not found in context", http.StatusUnauthorized)
 		return
@@ -123,7 +123,7 @@ func (h *GroupHandler) RejectJoinRequest(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	rejecterID, ok := r.Context().Value(userIDKey).(int)
+	rejecterID, ok := r.Context().Value(utils.User_id).(int64)
 	if !ok {
 		http.Error(w, "Rejecter ID not found in context", http.StatusUnauthorized)
 		return
@@ -150,7 +150,7 @@ func (h *GroupHandler) SendGroupChatMessage(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	senderID, ok := r.Context().Value(userIDKey).(int)
+	senderID, ok := r.Context().Value(utils.User_id).(int64)
 	if !ok {
 		http.Error(w, "Sender ID not found in context", http.StatusUnauthorized)
 		return
@@ -185,7 +185,7 @@ func (h *GroupHandler) GetGroupChatMessages(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	userID, ok := r.Context().Value(userIDKey).(int)
+	userID, ok := r.Context().Value(utils.User_id).(int64)
 	if !ok {
 		http.Error(w, "User ID not found in context", http.StatusUnauthorized)
 		return
@@ -247,7 +247,7 @@ func (h *GroupHandler) GetAllPublicGroups(w http.ResponseWriter, r *http.Request
 }
 
 func (h *GroupHandler) GetUserGroups(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value(userIDKey).(int64)
+	userID, ok := r.Context().Value(utils.User_id).(int64)
 	if !ok {
 		http.Error(w, "User ID not found in context", http.StatusUnauthorized)
 		return
