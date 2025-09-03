@@ -1,16 +1,56 @@
 'use client';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { SearchIcon, PlusIcon } from 'lucide-react';
 import CommunityItem from '../homepage/CommunityItem';
-import { profileAPI } from '../../lib/api';
+import { profileAPI, api } from '../../lib/api';
 import { useRouter } from 'next/navigation';
 
 const ProfileSidebar = ({ profile, connectionStatus = 'disconnected' }) => {
   const router = useRouter();
+  const [userGroups, setUserGroups] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const handleProfileClick = () => {
     router.push('/profile');
   };
+
+  useEffect(() => {
+    const fetchUserGroups = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/groups/my-groups`, {
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUserGroups(data || []);
+        } else {
+          setUserGroups([]);
+        }
+      } catch (error) {
+        console.error('Error fetching user groups:', error);
+        setUserGroups([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserGroups();
+
+    // Listen for group creation and join events
+    const handleGroupCreated = () => {
+      fetchUserGroups();
+    };
+    const handleGroupJoined = () => {
+      fetchUserGroups();
+    };
+    window.addEventListener('groupCreated', handleGroupCreated);
+    window.addEventListener('groupJoined', handleGroupJoined);
+
+    return () => {
+      window.removeEventListener('groupCreated', handleGroupCreated);
+      window.removeEventListener('groupJoined', handleGroupJoined);
+    };
+  }, []);
   
   return <div className="w-72 flex flex-col gap-6">
       {/* Profile Card */}
@@ -109,14 +149,14 @@ const ProfileSidebar = ({ profile, connectionStatus = 'disconnected' }) => {
         style={{ backgroundColor: 'var(--primary-background)' }}
       >
         <div className="flex justify-between items-center mb-3">
-          <h3 className="font-bold">Communities</h3>
+          <h3 className="font-bold">Groups</h3>
           <div className="flex gap-2">
             <button
               className="p-1.5 rounded-full"
               style={{ backgroundColor: 'transparent' }}
-              onMouseOver={e => (e.currentTarget.style.backgroundColor = 'var(--tertiary-text)')
-              }
+              onMouseOver={e => (e.currentTarget.style.backgroundColor = 'var(--tertiary-text)')}
               onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+              onClick={() => router.push('/groups')}
             >
               <SearchIcon className="w-4 h-4 cursor-pointer" />
             </button>
@@ -125,6 +165,7 @@ const ProfileSidebar = ({ profile, connectionStatus = 'disconnected' }) => {
               style={{ backgroundColor: 'transparent' }}
               onMouseOver={e => (e.currentTarget.style.backgroundColor = 'var(--tertiary-text)')}
               onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+              onClick={() => router.push('/groups')}
             >
               <PlusIcon className="w-4 h-4 cursor-pointer" />
             </button>
@@ -132,13 +173,24 @@ const ProfileSidebar = ({ profile, connectionStatus = 'disconnected' }) => {
         </div>
 
         <div className="flex flex-col gap-3">
-          {/* TODO: Map communities from backend data */}
-          <CommunityItem icon="https://randomuser.me/api/portraits/men/22.jpg" name="UX designers community" memberCount={32} />
-          <CommunityItem icon="https://randomuser.me/api/portraits/men/7.jpg" name="Frontend developers" memberCount={12} />
-          <CommunityItem icon="https://randomuser.me/api/portraits/men/1.jpg"  name="Frontend developers" memberCount={3} />
-          <CommunityItem icon="https://randomuser.me/api/portraits/men/23.jpg"  name="Frontend developers" memberCount={3} />
-          <CommunityItem icon="https://randomuser.me/api/portraits/men/4.jpg"  name="Frontend developers" memberCount={3} />
-          <CommunityItem icon="https://randomuser.me/api/portraits/men/25.jpg"  name="Frontend developers" memberCount={3} />
+          {loading ? (
+            <div className="text-center text-sm" style={{ color: 'var(--secondary-text)' }}>
+              Loading groups...
+            </div>
+          ) : userGroups.length > 0 ? (
+            userGroups.map(group => (
+              <CommunityItem 
+                key={group.id}
+                icon={group.avatar || null} 
+                name={group.title} 
+                memberCount={0}
+              />
+            ))
+          ) : (
+            <div className="text-center text-sm" style={{ color: 'var(--secondary-text)' }}>
+              You have not joined any groups yet
+            </div>
+          )}
         </div>
       </div>
     </div>;
