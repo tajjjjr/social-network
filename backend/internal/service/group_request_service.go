@@ -26,15 +26,22 @@ func (s *groupRequestService) SendJoinRequest(groupID, userID int64) (*models.Gr
 		return nil, fmt.Errorf("cannot send join request to a private group")
 	}
 
+	// For public groups, automatically approve and add user as member
 	request := &models.GroupRequest{
 		GroupID: int64(groupID),
 		UserID:  int64(userID),
-		Status:  "pending",
+		Status:  "approved",
 	}
 
 	createdRequest, err := s.groupRequestStore.CreateGroupRequest(request)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create group request: %w", err)
+	}
+
+	// Add user to Group_Members table
+	err = s.groupRequestStore.AddUserToGroup(groupID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add user to group: %w", err)
 	}
 
 	return createdRequest, nil

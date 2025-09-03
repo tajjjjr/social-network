@@ -33,6 +33,7 @@ type GroupRequestStore interface {
 	CreateGroupRequest(request *models.GroupRequest) (*models.GroupRequest, error)
 	GetGroupRequestByID(requestID int64) (*models.GroupRequest, error)
 	UpdateGroupRequestStatus(requestID int64, status string) error
+	AddUserToGroup(groupID, userID int64) error
 }
 
 type GroupChatMessageStore interface {
