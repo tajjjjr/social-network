@@ -8,14 +8,15 @@ import (
 	"testing"
 
 	"github.com/tajjjjr/social-network/backend/internal/models"
+	"github.com/tajjjjr/social-network/backend/pkg/utils"
 )
 
 func setUserIDInContext(ctx context.Context, userID int64) context.Context {
-	return context.WithValue(ctx, userIDKey, userID)
+	return context.WithValue(ctx, utils.User_id, userID)
 }
 
 type mockGroupService struct {
-	groups    []*models.Group
+	groups     []*models.Group
 	userGroups []*models.Group
 }
 
