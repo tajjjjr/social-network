@@ -74,7 +74,9 @@ func NewRouter(db *sql.DB) http.Handler {
 	})
 
 	mux.Handle("POST /groups", middleware.AuthMiddleware(db)(http.HandlerFunc(groupHandler.CreateGroup)))
+	mux.Handle("GET /groups", middleware.AuthMiddleware(db)(http.HandlerFunc(groupHandler.GetAllPublicGroups)))
 	mux.Handle("GET /groups/search", middleware.AuthMiddleware(db)(http.HandlerFunc(groupHandler.SearchPublicGroups)))
+	mux.Handle("GET /groups/my-groups", middleware.AuthMiddleware(db)(http.HandlerFunc(groupHandler.GetUserGroups)))
 	mux.Handle("POST /groups/{groupID}/join-request", middleware.AuthMiddleware(db)(http.HandlerFunc(groupHandler.SendJoinRequest)))
 	mux.Handle("PUT /groups/{groupID}/join-request/{requestID}/approve", middleware.AuthMiddleware(db)(http.HandlerFunc(groupHandler.ApproveJoinRequest)))
 	mux.Handle("PUT /groups/{groupID}/join-request/{requestID}/reject", middleware.AuthMiddleware(db)(http.HandlerFunc(groupHandler.RejectJoinRequest)))
