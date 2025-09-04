@@ -5,6 +5,7 @@ import { useSimpleNotifications } from '../../hooks/useNotifications';
 import { profileAPI } from '../../lib/api';
 import ClientDate from '../common/ClientDate';
 import { useRouter, usePathname } from 'next/navigation';
+import Image from 'next/image';
 
 const Header = ({ user = null }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -133,7 +134,7 @@ const Header = ({ user = null }) => {
       {/* Profile Dropdown */}
       <div className="relative z-10" ref={profileRef}>
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push('/me')}>
-          <img src={profileAPI.fetchProfileImage(user.avatar ? user.avatar : '')} alt="Profile" className="w-8 h-8 rounded-full" />
+          <Image src={profileAPI.fetchProfileImage(user.avatar ? user.avatar : '')} alt="Profile" width={32} height={32} className="w-8 h-8 rounded-full" />
           <span className="text-sm font-medium">{user.nickname}</span>
         </div>
         <button

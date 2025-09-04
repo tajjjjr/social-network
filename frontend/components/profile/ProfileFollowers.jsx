@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { profileAPI } from '../../lib/api';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 const ProfileFollowers = ({ user, currentUser, isOwnProfile }) => {
   const [followers, setFollowers] = useState([]);
@@ -45,9 +46,11 @@ const ProfileFollowers = ({ user, currentUser, isOwnProfile }) => {
                 style={{ backgroundColor: 'var(--secondary-background)' }}
                 onClick={() => handleViewProfile(follower.follower_id)}
               >
-                <img
+                <Image
                   src={profileAPI.fetchProfileImage(follower.avatar)}
                   alt={follower.firstname}
+                  width={80}
+                  height={80}
                   className="w-20 h-20 rounded-full mx-auto mb-3"
                 />
                 <h4 className="font-medium text-white text-sm">

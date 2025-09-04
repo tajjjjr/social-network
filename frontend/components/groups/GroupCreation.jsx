@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { api } from '../../lib/api';
+import Image from 'next/image';
 
 export default function GroupCreation({ onGroupCreated }) {
   const [formData, setFormData] = useState({
@@ -79,9 +80,11 @@ export default function GroupCreation({ onGroupCreated }) {
           <label className="block text-sm font-medium mb-2" style={{ color: 'var(--primary-text)' }}>Group Profile Picture</label>
           <div className="flex items-center gap-4">
             {imagePreview && (
-              <img
+              <Image
                 src={imagePreview}
                 alt="Group preview"
+                width={64}
+                height={64}
                 className="w-16 h-16 rounded-full object-cover"
               />
             )}

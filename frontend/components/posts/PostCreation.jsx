@@ -12,6 +12,7 @@ import {
 import { postAPI } from "../../lib/api";
 import UserSearch from "./UserSearch";
 import { profileAPI } from "../../lib/api";
+import Image from 'next/image';
 
 
 const PostCreation = ({ user, onPostCreated }) => {
@@ -161,11 +162,11 @@ const PostCreation = ({ user, onPostCreated }) => {
           className="flex items-start gap-3 rounded-xl p-3 mb-4"
           style={{ backgroundColor: "var(--secondary-background)" }}
         >
-          <img
-            src={
-                profileAPI.fetchProfileImage(user?.avatar || '')
-            }
+          <Image
+            src={profileAPI.fetchProfileImage(user?.avatar || '')}
             alt="Profile"
+            width={40}
+            height={40}
             className="w-10 h-10 rounded-full flex-shrink-0"
           />
           <div className="flex-1 min-w-0">
@@ -182,9 +183,11 @@ const PostCreation = ({ user, onPostCreated }) => {
             {/* Image Preview */}
             {imagePreview && (
               <div className="relative mt-3 inline-block">
-                <img
+                <Image
                   src={imagePreview}
                   alt="Preview"
+                  width={192}
+                  height={192}
                   className="max-w-full max-h-48 rounded-lg"
                 />
                 <button

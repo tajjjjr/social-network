@@ -4,6 +4,7 @@ import { SearchIcon, PlusIcon } from 'lucide-react';
 import CommunityItem from '../homepage/CommunityItem';
 import { profileAPI, api } from '../../lib/api';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 const ProfileSidebar = ({ profile, connectionStatus = 'disconnected' }) => {
   const router = useRouter();
@@ -63,9 +64,11 @@ const ProfileSidebar = ({ profile, connectionStatus = 'disconnected' }) => {
             className="w-24 h-24 rounded-full flex items-center justify-center"
             style={{ backgroundColor: 'var(--primary-accent)' }}
           >
-            <img
+            <Image
               src={profileAPI.fetchProfileImage(profile.avatar? profile.avatar : '')}
               alt="Profile"
+              width={80}
+              height={80}
               className="w-20 h-20 rounded-full"
             />
     

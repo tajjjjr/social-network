@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { chatAPI, profileAPI } from '../../lib/api';
 import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
+import Image from 'next/image';
 
 const UserListModal = ({ user, onClose }) => {
   const [followingUsers, setFollowingUsers] = useState([]);
@@ -81,9 +82,11 @@ const UserListModal = ({ user, onClose }) => {
                     className="w-full text-left p-3 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-3"
                     style={{ backgroundColor: 'var(--primary-background)', color: 'var(--primary-text)' }}
                   >
-                    <img
+                    <Image
                       src={profileAPI.fetchProfileImage(followedUser.avatar || '')}
                       alt={`${followedUser.nickname}'s avatar`}
+                      width={32}
+                      height={32}
                       className="w-8 h-8 rounded-full object-cover"
                     />
                     <span>{followedUser.nickname}</span>

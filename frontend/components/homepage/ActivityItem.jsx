@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 
 const ActivityItem = ({
   image,
@@ -14,7 +15,7 @@ const ActivityItem = ({
   if (isPartial) {
     return (
       <div className="flex items-center gap-3">
-        <img src={image} alt={name} className="w-10 h-10 rounded-full" />
+        <Image src={image} alt={name} width={40} height={40} className="w-10 h-10 rounded-full" />
         <div className="flex-1">
           <div className="flex items-center gap-1">
             <span className="font-medium text-sm" style={{ color: 'var(--primary-text)' }}>{name}</span>
@@ -28,7 +29,7 @@ const ActivityItem = ({
   return (
     <div className="flex items-start gap-3">
       <div className="relative">
-        <img src={image} alt={name} className="w-10 h-10 rounded-full" />
+        <Image src={image} alt={name} width={40} height={40} className="w-10 h-10 rounded-full" />
         {isGroup && (
           <div
             className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[8px]"

@@ -1,4 +1,6 @@
 import React from 'react';
+import Image from 'next/image';
+
 const CommunityItem = ({ icon, name, memberCount }) => {
   return (
     <div className="flex items-center gap-3">
@@ -7,7 +9,7 @@ const CommunityItem = ({ icon, name, memberCount }) => {
         style={{ backgroundColor: 'var(--tertiary-text)' }}
       >
         {icon ? (
-          <img src={icon} alt={name} className="w-full h-full object-cover" />
+          <Image src={icon} alt={name} width={40} height={40} className="w-full h-full object-cover" />
         ) : (
           <span className="text-xs font-bold" style={{ color: 'var(--primary-text)' }}>
             {name.charAt(0).toUpperCase()}
@@ -25,4 +27,5 @@ const CommunityItem = ({ icon, name, memberCount }) => {
     </div>
   );
 };
+
 export default CommunityItem;

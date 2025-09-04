@@ -1,5 +1,6 @@
 import React from 'react';
 import { EyeIcon } from 'lucide-react';
+import Image from 'next/image';
 
 const ProfileGroups = ({ user, isOwnProfile }) => {
   const groups = user?.groups || [];
@@ -19,9 +20,11 @@ const ProfileGroups = ({ user, isOwnProfile }) => {
                 className="relative aspect-video rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
                 style={{ backgroundColor: 'var(--secondary-background)' }}
               >
-                <img
+                <Image
                   src={group.image}
                   alt={group.title}
+                  width={120}
+                  height={120}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-black/50 flex flex-col justify-end p-4">
