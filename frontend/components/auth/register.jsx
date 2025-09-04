@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Head from 'next/head';
+import Image from 'next/image';
 import { FaFacebookF, FaGooglePlusG, FaLinkedinIn, FaArrowLeft, FaArrowRight, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { handleRegistrationFormSubmit, validateStepFour, validateStepOne, validateStepTwo } from '../../lib/auth';
 
@@ -229,9 +230,11 @@ export function RegisterForm() {
                 onChange={handleChange} />
               {avatarPreview && (
                 <div className="w-full flex flex-col items-center my-2">
-                  <img
+                  <Image
                     src={avatarPreview}
                     alt="Avatar Preview"
+                    width={112}
+                    height={112}
                     className="h-28 w-28 object-cover rounded-full border border-[var(--tertiary-text)]"
                   />
                   <button
