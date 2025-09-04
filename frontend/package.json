@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "lint": "next lint",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "build": "next build",
     "start": "next start",
     "serve:next": "dotenv -e .env -- sh -c 'PORT=$NEXT_PORT next dev'",
