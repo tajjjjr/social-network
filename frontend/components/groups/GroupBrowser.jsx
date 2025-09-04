@@ -1,7 +1,35 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { api } from '../../lib/api';
+
+const GroupCard = memo(function GroupCard({ group, showJoinButton = true, user, joinGroup }) {
+  const isCreator = user && group.creator_id === user.id;
+  return (
+    <div className="rounded-lg shadow p-4 mb-4" style={{ backgroundColor: 'var(--secondary-background)' }}>
+      <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--primary-text)' }}>{group.title}</h3>
+      <p className="mb-3" style={{ color: 'var(--secondary-text)' }}>{group.description}</p>
+      <div className="flex justify-between items-center">
+        <span className="text-sm" style={{ color: 'var(--secondary-text)' }}>
+          Created: {new Date(group.created_at).toLocaleDateString()}
+          {isCreator && <span className="ml-2 text-xs" style={{ color: 'var(--primary-accent)' }}>(Creator)</span>}
+        </span>
+        {showJoinButton && !isCreator && (
+          <button
+            onClick={() => joinGroup(group.id)}
+            className="px-4 py-2 rounded"
+            style={{
+              backgroundColor: 'var(--primary-accent)',
+              color: 'white'
+            }}
+          >
+            Join Group
+          </button>
+        )}
+      </div>
+    </div>
+  );
+});
 
 export default function GroupBrowser({ user }) {
   const [groups, setGroups] = useState([]);
@@ -108,35 +136,6 @@ export default function GroupBrowser({ user }) {
     }
   };
 
-  const GroupCard = ({ group, showJoinButton = true }) => {
-    const isCreator = user && group.creator_id === user.id;
-    
-    return (
-      <div className="rounded-lg shadow p-4 mb-4" style={{ backgroundColor: 'var(--secondary-background)' }}>
-        <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--primary-text)' }}>{group.title}</h3>
-        <p className="mb-3" style={{ color: 'var(--secondary-text)' }}>{group.description}</p>
-        <div className="flex justify-between items-center">
-          <span className="text-sm" style={{ color: 'var(--secondary-text)' }}>
-            Created: {new Date(group.created_at).toLocaleDateString()}
-            {isCreator && <span className="ml-2 text-xs" style={{ color: 'var(--primary-accent)' }}>(Creator)</span>}
-          </span>
-          {showJoinButton && !isCreator && (
-            <button
-              onClick={() => joinGroup(group.id)}
-              className="px-4 py-2 rounded"
-              style={{
-                backgroundColor: 'var(--primary-accent)',
-                color: 'white'
-              }}
-            >
-              Join Group
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">Groups</h1>
@@ -207,7 +206,7 @@ export default function GroupBrowser({ user }) {
         <div className="mb-6">
           <h2 className="text-xl font-semibold mb-4">Search Results</h2>
           {searchResults.map(group => (
-            <GroupCard key={group.id} group={group} showJoinButton={true} />
+            <GroupCard key={group.id} group={group} showJoinButton={true} user={user} joinGroup={joinGroup} />
           ))}
         </div>
       )}
@@ -220,7 +219,7 @@ export default function GroupBrowser({ user }) {
             <p style={{ color: 'var(--secondary-text)' }}>No public groups found.</p>
           ) : (
             groups.map(group => (
-              <GroupCard key={group.id} group={group} showJoinButton={true} />
+              <GroupCard key={group.id} group={group} showJoinButton={true} user={user} joinGroup={joinGroup} />
             ))
           )}
         </div>
@@ -231,10 +230,10 @@ export default function GroupBrowser({ user }) {
         <div>
           <h2 className="text-xl font-semibold mb-4">My Groups</h2>
           {myGroups.length === 0 ? (
-            <p style={{ color: 'var(--secondary-text)' }}>You haven't joined any groups yet.</p>
+            <p style={{ color: 'var(--secondary-text)' }}>You haven&apos;t joined any groups yet.</p>
           ) : (
             myGroups.map(group => (
-              <GroupCard key={group.id} group={group} showJoinButton={false} />
+              <GroupCard key={group.id} group={group} showJoinButton={false} user={user} joinGroup={joinGroup} />
             ))
           )}
         </div>
