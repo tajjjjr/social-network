@@ -21,7 +21,9 @@ func (s *groupStore) CreateGroup(group *models.Group) (*models.Group, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	stmt, err := tx.Prepare("INSERT INTO Groups (creator_id, title, description) VALUES (?, ?, ?)")
 	if err != nil {
