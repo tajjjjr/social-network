@@ -22,21 +22,40 @@ func NewGroupHandler(groupService service.GroupService, groupRequestService serv
 }
 
 func (h *GroupHandler) CreateGroup(w http.ResponseWriter, r *http.Request) {
-	var group models.Group
-	if err := json.NewDecoder(r.Body).Decode(&group); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
 	creatorID, ok := r.Context().Value(utils.User_id).(int64)
 	if !ok {
 		http.Error(w, "User ID not found in context", http.StatusUnauthorized)
 		return
 	}
-	group.CreatorID = creatorID
+
+	// Parse multipart form data
+	err := r.ParseMultipartForm(10 << 20) // 10 MB limit
+	if err != nil {
+		http.Error(w, "Failed to parse form data", http.StatusBadRequest)
+		return
+	}
+
+	group := models.Group{
+		CreatorID:   creatorID,
+		Title:       r.FormValue("title"),
+		Description: r.FormValue("description"),
+		Privacy:     r.FormValue("privacy"),
+	}
 
 	if group.Privacy == "" {
 		group.Privacy = "public"
+	}
+
+	// Handle avatar upload if present
+	file, header, err := r.FormFile("avatar")
+	if err == nil {
+		defer file.Close()
+		avatarPath, err := UploadAvatarImage(file, header)
+		if err != nil {
+			http.Error(w, "Failed to upload avatar: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		group.Avatar = avatarPath
 	}
 
 	newGroup, err := h.groupService.CreateGroup(&group)
