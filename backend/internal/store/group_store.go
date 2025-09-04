@@ -22,7 +22,9 @@ func (s *groupStore) CreateGroup(group *models.Group) (*models.Group, error) {
 		return nil, err
 	}
 	defer func() {
-		_ = tx.Rollback()
+		if err := tx.Rollback(); err != nil {
+			fmt.Printf("Failed to rollback transaction: %v\n", err)
+		}
 	}()
 
 	stmt, err := tx.Prepare("INSERT INTO Groups (creator_id, title, description) VALUES (?, ?, ?)")
@@ -77,7 +79,7 @@ func (s *groupStore) GetGroupByID(groupID int64) (*models.Group, error) {
 		}
 		return nil, err
 	}
-	group.Privacy = "public" // Default since privacy column doesn't exist
+	group.Privacy = "public"
 	return &group, nil
 }
 
@@ -101,7 +103,7 @@ func (s *groupStore) SearchPublicGroups(query string) ([]*models.Group, error) {
 		if err != nil {
 			return nil, err
 		}
-		group.Privacy = "public" // Default since privacy column doesn't exist
+		group.Privacy = "public"
 		groups = append(groups, &group)
 	}
 
@@ -128,7 +130,7 @@ func (s *groupStore) GetAllPublicGroups() ([]*models.Group, error) {
 		if err != nil {
 			return nil, err
 		}
-		group.Privacy = "public" // Default since privacy column doesn't exist
+		group.Privacy = "public"
 		groups = append(groups, &group)
 	}
 
@@ -161,7 +163,7 @@ func (s *groupStore) GetUserGroups(userID int64) ([]*models.Group, error) {
 		if err != nil {
 			return nil, err
 		}
-		group.Privacy = "public" // Default since privacy column doesn't exist
+		group.Privacy = "public"
 		groups = append(groups, &group)
 	}
 
