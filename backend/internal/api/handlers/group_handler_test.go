@@ -123,9 +123,15 @@ func TestCreateGroup(t *testing.T) {
 		// Create multipart form data
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
-		_ = writer.WriteField("title", "Test Group")
-		_ = writer.WriteField("description", "This is a test group.")
-		_ = writer.WriteField("privacy", "public")
+		if err := writer.WriteField("title", "Test Group"); err != nil {
+			t.Fatal(err)
+		}
+		if err := writer.WriteField("description", "This is a test group."); err != nil {
+			t.Fatal(err)
+		}
+		if err := writer.WriteField("privacy", "public"); err != nil {
+			t.Fatal(err)
+		}
 		writer.Close()
 
 		req, err := http.NewRequest("POST", "/groups", body)
@@ -195,9 +201,15 @@ func TestCreateGroup(t *testing.T) {
 		// Create multipart form data
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
-		_ = writer.WriteField("title", "Test Group")
-		_ = writer.WriteField("description", "This is a test group.")
-		_ = writer.WriteField("privacy", "public")
+		if err := writer.WriteField("title", "Test Group"); err != nil {
+			t.Fatal(err)
+		}
+		if err := writer.WriteField("description", "This is a test group."); err != nil {
+			t.Fatal(err)
+		}
+		if err := writer.WriteField("privacy", "public"); err != nil {
+			t.Fatal(err)
+		}
 		writer.Close()
 
 		req, err := http.NewRequest("POST", "/groups", body)
