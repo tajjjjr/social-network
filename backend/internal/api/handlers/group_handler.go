@@ -65,6 +65,13 @@ func (h *GroupHandler) CreateGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Add creator as group member
+	_, err = h.groupMemberService.AddGroupMember(newGroup.ID, group.CreatorID, "admin")
+	if err != nil {
+		// Log error but don't fail the group creation
+		fmt.Printf("Warning: Failed to add creator as group member: %v\n", err)
+	}
+
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(newGroup); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)

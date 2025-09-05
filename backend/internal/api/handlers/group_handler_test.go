@@ -96,6 +96,7 @@ type MockGroupChatMessageService struct {
 // MockGroupMemberService is a mock implementation of the GroupMemberService for testing.
 type MockGroupMemberService struct {
 	GetGroupMembersFunc func(groupID int64) ([]*models.User, error)
+	AddGroupMemberFunc  func(groupID, userID int64, role string) (*models.GroupMember, error)
 }
 
 func (m *MockGroupMemberService) GetGroupMembers(groupID int64) ([]*models.User, error) {
@@ -103,6 +104,13 @@ func (m *MockGroupMemberService) GetGroupMembers(groupID int64) ([]*models.User,
 		return m.GetGroupMembersFunc(groupID)
 	}
 	return nil, errors.New("GetGroupMembers not implemented")
+}
+
+func (m *MockGroupMemberService) AddGroupMember(groupID, userID int64, role string) (*models.GroupMember, error) {
+	if m.AddGroupMemberFunc != nil {
+		return m.AddGroupMemberFunc(groupID, userID, role)
+	}
+	return nil, errors.New("AddGroupMember not implemented")
 }
 
 // MockGroupEventService is a mock implementation of the GroupEventService for testing.

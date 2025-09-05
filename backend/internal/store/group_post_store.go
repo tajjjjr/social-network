@@ -95,13 +95,27 @@ func (s *groupPostStore) GetGroupPosts(groupID int64, userID int64, limit, offse
 	for rows.Next() {
 		var post models.GroupPost
 		var author models.User
+		var firstName, lastName, nickname, avatar sql.NullString
 		err := rows.Scan(&post.ID, &post.GroupID, &post.UserID, &post.Content, &post.Image,
 			&post.LikeCount, &post.DislikeCount, &post.CreatedAt, &post.UpdatedAt,
-			&author.FirstName, &author.LastName, &author.Nickname, &author.Avatar)
+			&firstName, &lastName, &nickname, &avatar)
 		if err != nil {
 			return nil, err
 		}
+		
 		author.ID = post.UserID
+		if firstName.Valid {
+			author.FirstName = &firstName.String
+		}
+		if lastName.Valid {
+			author.LastName = &lastName.String
+		}
+		if nickname.Valid {
+			author.Nickname = &nickname.String
+		}
+		if avatar.Valid {
+			author.Avatar = &avatar.String
+		}
 		post.Author = &author
 		posts = append(posts, &post)
 	}
