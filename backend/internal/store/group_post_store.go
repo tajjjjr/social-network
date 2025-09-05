@@ -80,8 +80,9 @@ func (s *groupPostStore) GetGroupPosts(groupID int64, userID int64, limit, offse
 
 	rows, err := s.db.Query(`
 		SELECT gp.id, gp.group_id, gp.user_id, gp.content, gp.image, gp.like_count, gp.dislike_count, 
-		       gp.created_at, gp.updated_at
+		       gp.created_at, gp.updated_at, u.firstname, u.lastname, u.nickname, u.avatar
 		FROM Group_Posts gp
+		LEFT JOIN Users u ON gp.user_id = u.id
 		WHERE gp.group_id = ?
 		ORDER BY gp.created_at DESC
 		LIMIT ? OFFSET ?`, groupID, limit, offset)
@@ -93,11 +94,15 @@ func (s *groupPostStore) GetGroupPosts(groupID int64, userID int64, limit, offse
 	var posts []*models.GroupPost
 	for rows.Next() {
 		var post models.GroupPost
+		var author models.User
 		err := rows.Scan(&post.ID, &post.GroupID, &post.UserID, &post.Content, &post.Image,
-			&post.LikeCount, &post.DislikeCount, &post.CreatedAt, &post.UpdatedAt)
+			&post.LikeCount, &post.DislikeCount, &post.CreatedAt, &post.UpdatedAt,
+			&author.FirstName, &author.LastName, &author.Nickname, &author.Avatar)
 		if err != nil {
 			return nil, err
 		}
+		author.ID = post.UserID
+		post.Author = &author
 		posts = append(posts, &post)
 	}
 	return posts, nil

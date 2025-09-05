@@ -46,6 +46,7 @@ func NewRouter(db *sql.DB) http.Handler {
 	groupChatMessageStore := store.NewGroupChatMessageStore(db)
 	groupMemberStore := store.NewGroupMemberStore(db)
 	groupPostStore := store.NewGroupPostStore(db)
+	groupEventStore := store.NewGroupEventStore(db)
 
 	postService := service.NewPostService(postStore)
 	authService := service.NewAuthService(authStore)
@@ -58,6 +59,8 @@ func NewRouter(db *sql.DB) http.Handler {
 	groupRequestService := service.NewGroupRequestService(groupRequestStore, groupService)
 	groupChatMessageService := service.NewGroupChatMessageService(groupChatMessageStore, groupService, groupMemberStore)
 	groupPostService := service.NewGroupPostService(groupPostStore)
+	groupMemberService := service.NewGroupMemberService(groupMemberStore)
+	groupEventService := service.NewGroupEventService(groupEventStore)
 
 	postHandler := handlers.NewPostHandler(postService)
 	authHandler := handlers.NewAuthHandler(authService)
@@ -66,7 +69,7 @@ func NewRouter(db *sql.DB) http.Handler {
 	followRequestHandler := handlers.NewFollowRequestHandler(followRequestService, notifier)
 	reactionHandler := handlers.NewReactionHandler(reactionService)
 	profileHandler := handlers.NewProfileHandler(profileService)
-	groupHandler := handlers.NewGroupHandler(groupService, groupRequestService, groupChatMessageService)
+	groupHandler := handlers.NewGroupHandler(groupService, groupRequestService, groupChatMessageService, groupMemberService, groupEventService)
 	groupPostHandler := handlers.NewGroupPostHandler(groupPostService)
 
 	mux.HandleFunc("POST /validate/step1", authHandler.ValidateAccountStepOne)

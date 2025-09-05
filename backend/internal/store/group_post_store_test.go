@@ -21,6 +21,8 @@ func setupGroupPostTestDB(t *testing.T) *sql.DB {
 		password TEXT NOT NULL,
 		firstname TEXT,
 		lastname TEXT,
+		nickname TEXT,
+		avatar TEXT,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);`
 
@@ -81,7 +83,7 @@ func setupGroupPostTestDB(t *testing.T) *sql.DB {
 	}
 
 	// Insert test data
-	_, err = db.Exec("INSERT INTO Users (id, email, password, firstname, lastname) VALUES (1, 'test@example.com', 'password', 'Test', 'User')")
+	_, err = db.Exec("INSERT INTO Users (id, email, password, firstname, lastname, nickname, avatar) VALUES (1, 'test@example.com', 'password', 'Test', 'User', 'testuser', 'avatar.jpg')")
 	if err != nil {
 		t.Fatal(err)
 	}

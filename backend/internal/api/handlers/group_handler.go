@@ -15,10 +15,12 @@ type GroupHandler struct {
 	groupService            service.GroupService
 	groupRequestService     service.GroupRequestService
 	groupChatMessageService service.GroupChatMessageService
+	groupMemberService      service.GroupMemberServiceInterface
+	groupEventService       service.GroupEventServiceInterface
 }
 
-func NewGroupHandler(groupService service.GroupService, groupRequestService service.GroupRequestService, groupChatMessageService service.GroupChatMessageService) *GroupHandler {
-	return &GroupHandler{groupService: groupService, groupRequestService: groupRequestService, groupChatMessageService: groupChatMessageService}
+func NewGroupHandler(groupService service.GroupService, groupRequestService service.GroupRequestService, groupChatMessageService service.GroupChatMessageService, groupMemberService service.GroupMemberServiceInterface, groupEventService service.GroupEventServiceInterface) *GroupHandler {
+	return &GroupHandler{groupService: groupService, groupRequestService: groupRequestService, groupChatMessageService: groupChatMessageService, groupMemberService: groupMemberService, groupEventService: groupEventService}
 }
 
 func (h *GroupHandler) CreateGroup(w http.ResponseWriter, r *http.Request) {
@@ -304,14 +306,17 @@ func (h *GroupHandler) GetGroupByID(w http.ResponseWriter, r *http.Request) {
 
 func (h *GroupHandler) GetGroupEvents(w http.ResponseWriter, r *http.Request) {
 	groupIDStr := r.PathValue("groupID")
-	_, err := strconv.Atoi(groupIDStr)
+	groupID, err := strconv.Atoi(groupIDStr)
 	if err != nil {
 		http.Error(w, "Invalid group ID", http.StatusBadRequest)
 		return
 	}
 
-	// For now, return empty array - implement when event service is ready
-	events := []interface{}{}
+	events, err := h.groupEventService.GetGroupEvents(int64(groupID))
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to get group events: %v", err), http.StatusInternalServerError)
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(events); err != nil {
@@ -322,14 +327,17 @@ func (h *GroupHandler) GetGroupEvents(w http.ResponseWriter, r *http.Request) {
 
 func (h *GroupHandler) GetGroupMembers(w http.ResponseWriter, r *http.Request) {
 	groupIDStr := r.PathValue("groupID")
-	_, err := strconv.Atoi(groupIDStr)
+	groupID, err := strconv.Atoi(groupIDStr)
 	if err != nil {
 		http.Error(w, "Invalid group ID", http.StatusBadRequest)
 		return
 	}
 
-	// For now, return empty array - implement when member service is ready
-	members := []interface{}{}
+	members, err := h.groupMemberService.GetGroupMembers(int64(groupID))
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to get group members: %v", err), http.StatusInternalServerError)
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(members); err != nil {

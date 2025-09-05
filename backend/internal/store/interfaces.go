@@ -41,7 +41,7 @@ type GroupChatMessageStore interface {
 	GetGroupChatMessages(groupID int64, limit, offset int) ([]*models.GroupChatMessage, error)
 }
 
-type GroupMemberStore interface {
+type GroupMemberStoreInterface interface {
 	IsGroupMember(groupID, userID int64) (bool, error)
 	AddGroupMember(groupID, userID int64, role string) (*models.GroupMember, error)
 	RemoveGroupMember(groupID, userID int64) error

@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/tajjjjr/social-network/backend/internal/models"
+	"github.com/tajjjjr/social-network/backend/internal/store"
 	"github.com/tajjjjr/social-network/backend/pkg/utils"
 )
 
@@ -92,6 +93,30 @@ type MockGroupChatMessageService struct {
 	GetGroupChatMessagesFunc func(groupID int64, userID int64, limit, offset int) ([]*models.GroupChatMessage, error)
 }
 
+// MockGroupMemberService is a mock implementation of the GroupMemberService for testing.
+type MockGroupMemberService struct {
+	GetGroupMembersFunc func(groupID int64) ([]*models.User, error)
+}
+
+func (m *MockGroupMemberService) GetGroupMembers(groupID int64) ([]*models.User, error) {
+	if m.GetGroupMembersFunc != nil {
+		return m.GetGroupMembersFunc(groupID)
+	}
+	return nil, errors.New("GetGroupMembers not implemented")
+}
+
+// MockGroupEventService is a mock implementation of the GroupEventService for testing.
+type MockGroupEventService struct {
+	GetGroupEventsFunc func(groupID int64) ([]*store.GroupEvent, error)
+}
+
+func (m *MockGroupEventService) GetGroupEvents(groupID int64) ([]*store.GroupEvent, error) {
+	if m.GetGroupEventsFunc != nil {
+		return m.GetGroupEventsFunc(groupID)
+	}
+	return nil, errors.New("GetGroupEvents not implemented")
+}
+
 func (m *MockGroupChatMessageService) SendGroupChatMessage(groupID, senderID int64, content string) (*models.GroupChatMessage, error) {
 	if m.SendGroupChatMessageFunc != nil {
 		return m.SendGroupChatMessageFunc(groupID, senderID, content)
@@ -117,8 +142,10 @@ func TestCreateGroup(t *testing.T) {
 		}
 		mockGroupRequestService := &MockGroupRequestService{}
 		mockGroupChatMessageService := &MockGroupChatMessageService{}
+		mockGroupMemberService := &MockGroupMemberService{}
+		mockGroupEventService := &MockGroupEventService{}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, mockGroupMemberService, mockGroupEventService)
 
 		// Create multipart form data
 		body := &bytes.Buffer{}
@@ -169,7 +196,7 @@ func TestCreateGroup(t *testing.T) {
 		mockGroupRequestService := &MockGroupRequestService{}
 		mockGroupChatMessageService := &MockGroupChatMessageService{}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		req, err := http.NewRequest("POST", "/groups", bytes.NewReader([]byte("invalid form data")))
 		if err != nil {
@@ -196,7 +223,7 @@ func TestCreateGroup(t *testing.T) {
 		mockGroupRequestService := &MockGroupRequestService{}
 		mockGroupChatMessageService := &MockGroupChatMessageService{}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		// Create multipart form data
 		body := &bytes.Buffer{}
@@ -243,7 +270,7 @@ func TestSendJoinRequest(t *testing.T) {
 		}
 		mockGroupChatMessageService := &MockGroupChatMessageService{}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		req, err := http.NewRequest("POST", "/groups/1/join-request", nil)
 		if err != nil {
@@ -283,7 +310,7 @@ func TestSendJoinRequest(t *testing.T) {
 		mockGroupRequestService := &MockGroupRequestService{}
 		mockGroupChatMessageService := &MockGroupChatMessageService{}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		req, err := http.NewRequest("POST", "/groups/invalid/join-request", nil)
 		if err != nil {
@@ -311,7 +338,7 @@ func TestSendJoinRequest(t *testing.T) {
 		mockGroupRequestService := &MockGroupRequestService{}
 		mockGroupChatMessageService := &MockGroupChatMessageService{}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		req, err := http.NewRequest("POST", "/groups/1/join-request", nil)
 		if err != nil {
@@ -343,7 +370,7 @@ func TestSendJoinRequest(t *testing.T) {
 		}
 		mockGroupChatMessageService := &MockGroupChatMessageService{}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		req, err := http.NewRequest("POST", "/groups/1/join-request", nil)
 		if err != nil {
@@ -377,7 +404,7 @@ func TestApproveJoinRequest(t *testing.T) {
 		}
 		mockGroupChatMessageService := &MockGroupChatMessageService{}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		req, err := http.NewRequest("PUT", "/groups/1/join-request/1/approve", nil)
 		if err != nil {
@@ -415,7 +442,7 @@ func TestApproveJoinRequest(t *testing.T) {
 		mockGroupRequestService := &MockGroupRequestService{}
 		mockGroupChatMessageService := &MockGroupChatMessageService{}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		req, err := http.NewRequest("PUT", "/groups/1/join-request/invalid/approve", nil)
 		if err != nil {
@@ -444,7 +471,7 @@ func TestApproveJoinRequest(t *testing.T) {
 		mockGroupRequestService := &MockGroupRequestService{}
 		mockGroupChatMessageService := &MockGroupChatMessageService{}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		req, err := http.NewRequest("PUT", "/groups/1/join-request/1/approve", nil)
 		if err != nil {
@@ -473,7 +500,7 @@ func TestApproveJoinRequest(t *testing.T) {
 		}
 		mockGroupChatMessageService := &MockGroupChatMessageService{}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		req, err := http.NewRequest("PUT", "/groups/1/join-request/1/approve", nil)
 		if err != nil {
@@ -508,7 +535,7 @@ func TestRejectJoinRequest(t *testing.T) {
 		}
 		mockGroupChatMessageService := &MockGroupChatMessageService{}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		req, err := http.NewRequest("PUT", "/groups/1/join-request/1/reject", nil)
 		if err != nil {
@@ -546,7 +573,7 @@ func TestRejectJoinRequest(t *testing.T) {
 		mockGroupRequestService := &MockGroupRequestService{}
 		mockGroupChatMessageService := &MockGroupChatMessageService{}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		req, err := http.NewRequest("PUT", "/groups/1/join-request/invalid/reject", nil)
 		if err != nil {
@@ -575,7 +602,7 @@ func TestRejectJoinRequest(t *testing.T) {
 		mockGroupRequestService := &MockGroupRequestService{}
 		mockGroupChatMessageService := &MockGroupChatMessageService{}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		req, err := http.NewRequest("PUT", "/groups/1/join-request/1/reject", nil)
 		if err != nil {
@@ -604,7 +631,7 @@ func TestRejectJoinRequest(t *testing.T) {
 		}
 		mockGroupChatMessageService := &MockGroupChatMessageService{}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		req, err := http.NewRequest("PUT", "/groups/1/join-request/1/reject", nil)
 		if err != nil {
@@ -643,7 +670,7 @@ func TestSendGroupChatMessage(t *testing.T) {
 			},
 		}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		body, _ := json.Marshal(map[string]string{"content": "Hello Group!"})
 		req, err := http.NewRequest("POST", "/groups/1/chat", bytes.NewReader(body))
@@ -681,7 +708,7 @@ func TestSendGroupChatMessage(t *testing.T) {
 		mockGroupRequestService := &MockGroupRequestService{}
 		mockGroupChatMessageService := &MockGroupChatMessageService{}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		body, _ := json.Marshal(map[string]string{"content": "Hello Group!"})
 		req, err := http.NewRequest("POST", "/groups/invalid/chat", bytes.NewReader(body))
@@ -710,7 +737,7 @@ func TestSendGroupChatMessage(t *testing.T) {
 		mockGroupRequestService := &MockGroupRequestService{}
 		mockGroupChatMessageService := &MockGroupChatMessageService{}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		req, err := http.NewRequest("POST", "/groups/1/chat", bytes.NewReader([]byte("invalid json")))
 		if err != nil {
@@ -738,7 +765,7 @@ func TestSendGroupChatMessage(t *testing.T) {
 		mockGroupRequestService := &MockGroupRequestService{}
 		mockGroupChatMessageService := &MockGroupChatMessageService{}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		body, _ := json.Marshal(map[string]string{"content": "Hello Group!"})
 		req, err := http.NewRequest("POST", "/groups/1/chat", bytes.NewReader(body))
@@ -771,7 +798,7 @@ func TestSendGroupChatMessage(t *testing.T) {
 			},
 		}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		body, _ := json.Marshal(map[string]string{"content": "Hello Group!"})
 		req, err := http.NewRequest("POST", "/groups/1/chat", bytes.NewReader(body))
@@ -813,7 +840,7 @@ func TestGetGroupChatMessages(t *testing.T) {
 			},
 		}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		req, err := http.NewRequest("GET", "/groups/1/chat?limit=10&offset=0", nil)
 		if err != nil {
@@ -853,7 +880,7 @@ func TestGetGroupChatMessages(t *testing.T) {
 		mockGroupRequestService := &MockGroupRequestService{}
 		mockGroupChatMessageService := &MockGroupChatMessageService{}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		req, err := http.NewRequest("GET", "/groups/invalid/chat", nil)
 		if err != nil {
@@ -881,7 +908,7 @@ func TestGetGroupChatMessages(t *testing.T) {
 		mockGroupRequestService := &MockGroupRequestService{}
 		mockGroupChatMessageService := &MockGroupChatMessageService{}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		req, err := http.NewRequest("GET", "/groups/1/chat", nil)
 		if err != nil {
@@ -913,7 +940,7 @@ func TestGetGroupChatMessages(t *testing.T) {
 			},
 		}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		req, err := http.NewRequest("GET", "/groups/1/chat", nil)
 		if err != nil {
@@ -955,7 +982,7 @@ func TestGetGroupChatMessages(t *testing.T) {
 			},
 		}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		req, err := http.NewRequest("GET", "/groups/1/chat", nil)
 		if err != nil {
@@ -992,7 +1019,7 @@ func TestSearchPublicGroups(t *testing.T) {
 		mockGroupRequestService := &MockGroupRequestService{}
 		mockGroupChatMessageService := &MockGroupChatMessageService{}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		req, err := http.NewRequest("GET", "/groups/search?query=public", nil)
 		if err != nil {
@@ -1030,7 +1057,7 @@ func TestSearchPublicGroups(t *testing.T) {
 		mockGroupRequestService := &MockGroupRequestService{}
 		mockGroupChatMessageService := &MockGroupChatMessageService{}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		req, err := http.NewRequest("GET", "/groups/search?query=nonexistent", nil)
 		if err != nil {
@@ -1065,7 +1092,7 @@ func TestSearchPublicGroups(t *testing.T) {
 		mockGroupRequestService := &MockGroupRequestService{}
 		mockGroupChatMessageService := &MockGroupChatMessageService{}
 
-		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService, &MockGroupMemberService{}, &MockGroupEventService{})
 
 		req, err := http.NewRequest("GET", "/groups/search?query=error", nil)
 		if err != nil {

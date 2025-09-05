@@ -10,6 +10,13 @@ const getGroupAvatar = (avatar) => {
   return fetchGroupImage(avatar);
 };
 
+const getMemberAvatar = (avatar) => {
+  if (!avatar || avatar.trim() === '') {
+    return '/default-avatar.png';
+  }
+  return `${process.env.NEXT_PUBLIC_API_URL}/avatar?avatar=${encodeURIComponent(avatar)}`;
+};
+
 export default function GroupHeader({ group }) {
   const [stats, setStats] = useState({ members: 0, posts: 0, events: 0 });
   const [loading, setLoading] = useState(true);
@@ -23,13 +30,26 @@ export default function GroupHeader({ group }) {
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/groups/${group.id}/events`, { credentials: 'include' })
         ]);
 
-        const members = membersRes.ok ? await membersRes.json() : [];
-        const posts = postsRes.ok ? await postsRes.json() : [];
-        const events = eventsRes.ok ? await eventsRes.json() : [];
+        let members = [];
+        let events = [];
+        let postsCount = 0;
+        
+        if (membersRes.ok) {
+          members = await membersRes.json();
+        }
+        
+        if (eventsRes.ok) {
+          events = await eventsRes.json();
+        }
+        
+        if (postsRes.ok) {
+          const postsData = await postsRes.json();
+          postsCount = Array.isArray(postsData) ? postsData.length : 0;
+        }
 
         setStats({
           members: (members || []).length,
-          posts: (posts || []).length,
+          posts: postsCount,
           events: (events || []).length
         });
       } catch (error) {

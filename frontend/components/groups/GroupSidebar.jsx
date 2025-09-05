@@ -99,16 +99,16 @@ export default function GroupSidebar({ group }) {
               <div key={event.id} className="flex gap-3 p-3 rounded-lg hover:bg-opacity-50" style={{ backgroundColor: 'var(--primary-background)' }}>
                 <div className="flex-shrink-0">
                   <div className="w-12 h-12 rounded-lg flex flex-col items-center justify-center text-xs" style={{ backgroundColor: 'var(--primary-accent)', color: 'white' }}>
-                    <span className="font-bold">{new Date(event.event_time).getDate()}</span>
-                    <span>{new Date(event.event_time).toLocaleDateString('en', { month: 'short' })}</span>
+                    <span className="font-bold">{new Date(event.EventTime || event.event_time).getDate()}</span>
+                    <span>{new Date(event.EventTime || event.event_time).toLocaleDateString('en', { month: 'short' })}</span>
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="font-medium truncate" style={{ color: 'var(--primary-text)' }}>
-                    {event.title}
+                    {event.Title || event.title}
                   </h4>
                   <p className="text-sm truncate" style={{ color: 'var(--secondary-text)' }}>
-                    {new Date(event.event_time).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(event.EventTime || event.event_time).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
               </div>
@@ -150,16 +150,17 @@ export default function GroupSidebar({ group }) {
             {members.slice(0, 5).map(member => (
               <div key={member.id} className="flex items-center gap-3">
                 <img
-                  src={member.avatar || '/default-avatar.png'}
-                  alt={member.name}
+                  src={(member.Avatar || member.avatar) && (member.Avatar || member.avatar).trim() !== '' ? `${process.env.NEXT_PUBLIC_API_URL}/avatar?avatar=${encodeURIComponent(member.Avatar || member.avatar)}` : '/default-avatar.png'}
+                  alt={(member.FirstName || member.firstname) + ' ' + (member.LastName || member.lastname)}
                   className="w-10 h-10 rounded-full object-cover"
+                  onError={(e) => { e.target.src = '/default-avatar.png'; }}
                 />
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate" style={{ color: 'var(--primary-text)' }}>
-                    {member.firstname} {member.lastname}
+                    {member.FirstName || member.firstname} {member.LastName || member.lastname}
                   </p>
                   <p className="text-sm truncate" style={{ color: 'var(--secondary-text)' }}>
-                    @{member.nickname}
+                    @{member.Nickname || member.nickname}
                   </p>
                 </div>
               </div>
