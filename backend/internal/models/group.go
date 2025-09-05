@@ -8,5 +8,6 @@ type Group struct {
 	Description string    `json:"description"`
 	CreatorID   int64     `json:"creator_id"`
 	Privacy     string    `json:"privacy"` // e.g., "public", "private"
+	Avatar      string    `json:"avatar,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 }

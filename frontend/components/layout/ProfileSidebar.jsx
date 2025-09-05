@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { SearchIcon, PlusIcon } from 'lucide-react';
 import CommunityItem from '../homepage/CommunityItem';
-import { profileAPI, api } from '../../lib/api';
+import { profileAPI, api, fetchGroupImage } from '../../lib/api';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -184,7 +184,7 @@ const ProfileSidebar = ({ profile, connectionStatus = 'disconnected' }) => {
             userGroups.map(group => (
               <CommunityItem 
                 key={group.id}
-                icon={group.avatar || null} 
+                icon={group.avatar ? fetchGroupImage(group.avatar) : null} 
                 name={group.title} 
                 memberCount={0}
               />

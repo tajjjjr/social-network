@@ -1,35 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, memo } from 'react';
-import { api } from '../../lib/api';
-
-const GroupCard = memo(function GroupCard({ group, showJoinButton = true, user, joinGroup }) {
-  const isCreator = user && group.creator_id === user.id;
-  return (
-    <div className="rounded-lg shadow p-4 mb-4" style={{ backgroundColor: 'var(--secondary-background)' }}>
-      <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--primary-text)' }}>{group.title}</h3>
-      <p className="mb-3" style={{ color: 'var(--secondary-text)' }}>{group.description}</p>
-      <div className="flex justify-between items-center">
-        <span className="text-sm" style={{ color: 'var(--secondary-text)' }}>
-          Created: {new Date(group.created_at).toLocaleDateString()}
-          {isCreator && <span className="ml-2 text-xs" style={{ color: 'var(--primary-accent)' }}>(Creator)</span>}
-        </span>
-        {showJoinButton && !isCreator && (
-          <button
-            onClick={() => joinGroup(group.id)}
-            className="px-4 py-2 rounded"
-            style={{
-              backgroundColor: 'var(--primary-accent)',
-              color: 'white'
-            }}
-          >
-            Join Group
-          </button>
-        )}
-      </div>
-    </div>
-  );
-});
+import { useState, useEffect } from 'react';
+import { api, fetchGroupImage } from '../../lib/api';
 
 export default function GroupBrowser({ user }) {
   const [groups, setGroups] = useState([]);
@@ -134,6 +106,42 @@ export default function GroupBrowser({ user }) {
     } catch (error) {
       console.error('Error joining group:', error);
     }
+  };
+
+  const GroupCard = ({ group, showJoinButton = true }) => {
+    const isCreator = user && group.creator_id === user.id;
+    return (
+      <div className="rounded-lg shadow p-4 mb-4" style={{ backgroundColor: 'var(--secondary-background)' }}>
+        <div className="flex items-center gap-4 mb-2">
+          <img
+            src={fetchGroupImage(group.avatar)}
+            alt={group.title + ' avatar'}
+            className="w-12 h-12 rounded-full object-cover border"
+            onError={e => { e.target.src = '/default-group-avatar.png'; }}
+          />
+          <h3 className="text-lg font-semibold" style={{ color: 'var(--primary-text)' }}>{group.title}</h3>
+        </div>
+        <p className="mb-3" style={{ color: 'var(--secondary-text)' }}>{group.description}</p>
+        <div className="flex justify-between items-center">
+          <span className="text-sm" style={{ color: 'var(--secondary-text)' }}>
+            Created: {new Date(group.created_at).toLocaleDateString()}
+            {isCreator && <span className="ml-2 text-xs" style={{ color: 'var(--primary-accent)' }}>(Creator)</span>}
+          </span>
+          {showJoinButton && !isCreator && (
+            <button
+              onClick={() => joinGroup(group.id)}
+              className="px-4 py-2 rounded"
+              style={{
+                backgroundColor: 'var(--primary-accent)',
+                color: 'white'
+              }}
+            >
+              Join Group
+            </button>
+          )}
+        </div>
+      </div>
+    );
   };
 
   return (
