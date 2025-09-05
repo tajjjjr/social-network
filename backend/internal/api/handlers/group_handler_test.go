@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -119,18 +120,19 @@ func TestCreateGroup(t *testing.T) {
 
 		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
 
-		group := &models.Group{
-			Title:       "Test Group",
-			Description: "This is a test group.",
-			CreatorID:   1,
-			Privacy:     "public",
-		}
+		// Create multipart form data
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		writer.WriteField("title", "Test Group")
+		writer.WriteField("description", "This is a test group.")
+		writer.WriteField("privacy", "public")
+		writer.Close()
 
-		body, _ := json.Marshal(group)
-		req, err := http.NewRequest("POST", "/groups", bytes.NewReader(body))
+		req, err := http.NewRequest("POST", "/groups", body)
 		if err != nil {
 			t.Fatal(err)
 		}
+		req.Header.Set("Content-Type", writer.FormDataContentType())
 
 		// Add user ID to context (as int64 for CreateGroup)
 		ctx := context.WithValue(req.Context(), utils.User_id, int64(1))
@@ -163,10 +165,15 @@ func TestCreateGroup(t *testing.T) {
 
 		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
 
-		req, err := http.NewRequest("POST", "/groups", bytes.NewReader([]byte("invalid json")))
+		req, err := http.NewRequest("POST", "/groups", bytes.NewReader([]byte("invalid form data")))
 		if err != nil {
 			t.Fatal(err)
 		}
+		req.Header.Set("Content-Type", "multipart/form-data")
+
+		// Add user ID to context
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(1))
+		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
 		h.CreateGroup(rr, req)
@@ -185,17 +192,19 @@ func TestCreateGroup(t *testing.T) {
 
 		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
 
-		group := &models.Group{
-			Title:       "Test Group",
-			Description: "This is a test group.",
-			Privacy:     "public",
-		}
+		// Create multipart form data
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		writer.WriteField("title", "Test Group")
+		writer.WriteField("description", "This is a test group.")
+		writer.WriteField("privacy", "public")
+		writer.Close()
 
-		body, _ := json.Marshal(group)
-		req, err := http.NewRequest("POST", "/groups", bytes.NewReader(body))
+		req, err := http.NewRequest("POST", "/groups", body)
 		if err != nil {
 			t.Fatal(err)
 		}
+		req.Header.Set("Content-Type", writer.FormDataContentType())
 
 		rr := httptest.NewRecorder()
 		h.CreateGroup(rr, req)

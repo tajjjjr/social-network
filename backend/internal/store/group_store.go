@@ -25,18 +25,15 @@ func (s *groupStore) CreateGroup(group *models.Group) (*models.Group, error) {
 		if err := tx.Rollback(); err != nil {
 			fmt.Printf("Failed to rollback transaction: %v\n", err)
 		}
-		if err := tx.Rollback(); err != nil {
-			fmt.Printf("Failed to rollback transaction: %v\n", err)
-		}
 	}()
 
-	stmt, err := tx.Prepare("INSERT INTO Groups (creator_id, title, description, privacy, avatar) VALUES (?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("INSERT INTO Groups (creator_id, title, description, avatar) VALUES (?, ?, ?, ?)")
 	if err != nil {
 		return nil, err
 	}
 	defer stmt.Close()
 
-	result, err := stmt.Exec(group.CreatorID, group.Title, group.Description, group.Privacy, group.Avatar)
+	result, err := stmt.Exec(group.CreatorID, group.Title, group.Description, group.Avatar)
 	if err != nil {
 		return nil, err
 	}
@@ -69,12 +66,11 @@ func (s *groupStore) CreateGroup(group *models.Group) (*models.Group, error) {
 
 func (s *groupStore) GetGroupByID(groupID int64) (*models.Group, error) {
 	var group models.Group
-	err := s.db.QueryRow("SELECT id, creator_id, title, description, privacy, avatar, created_at FROM Groups WHERE id = ?", groupID).Scan(
+	err := s.db.QueryRow("SELECT id, creator_id, title, description, avatar, created_at FROM Groups WHERE id = ?", groupID).Scan(
 		&group.ID,
 		&group.CreatorID,
 		&group.Title,
 		&group.Description,
-		&group.Privacy,
 		&group.Avatar,
 		&group.CreatedAt,
 	)

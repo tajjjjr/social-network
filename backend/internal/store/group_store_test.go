@@ -19,6 +19,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 		creator_id INTEGER NOT NULL,
 		title TEXT NOT NULL,
 		description TEXT,
+		avatar TEXT,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);`
 
