@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import ActivityItem from '../homepage/ActivityItem';
 import { wsService } from '../../lib/websocket';
 import { notificationService } from '../../lib/notificationService';
-import { profileAPI } from '../../lib/api';
+import { profileAPI, groupAPI } from '../../lib/api';
 
 const ActivitySidebar = () => {
   const [activities, setActivities] = useState([]);
@@ -22,6 +22,13 @@ const ActivitySidebar = () => {
     return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
   };
 
+  const getAvatarUrl = (avatar, isGroup) => {
+    if (!avatar) return '/default-group-avatar.png';
+    return isGroup
+      ? groupAPI.getAvatarUrl(avatar)
+      : profileAPI.fetchProfileImage(avatar);
+  };
+
   const handleRequest = useCallback((notification) => {
     console.log('Received follow_request notification:', notification);
 
@@ -36,7 +43,7 @@ const ActivitySidebar = () => {
     if (!request_id) return;
 
     const activity = {
-      image: profileAPI.fetchProfileImage(avatar || ''),
+      image: getAvatarUrl(avatar, false),
       name: user_name || 'Unknown User',
       action: 'sent a follow request',
       time: formatTimeSince(timestamp),
@@ -68,7 +75,7 @@ const ActivitySidebar = () => {
     if (!request_id) return;
 
     const activity = {
-      image: profileAPI.fetchProfileImage(avatar || ''),
+      image: getAvatarUrl(avatar, false),
       name: user_name || 'Unknown User',
       action: 'followed you',
       time: formatTimeSince(timestamp),
@@ -128,7 +135,7 @@ const ActivitySidebar = () => {
         const pendingRequests = Array.isArray(requests?.user) ? requests.user : [];
 
         const formatted = pendingRequests.map((req) => ({
-          image: profileAPI.fetchProfileImage(req.avatar || ''),
+          image: getAvatarUrl(req.avatar, false),
           name: req.firstname || 'Unknown User',
           action: 'sent a follow request',
           time: formatTimeSince(req.requested_at),

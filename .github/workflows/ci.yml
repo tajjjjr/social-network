@@ -56,9 +56,9 @@ jobs:
         working-directory: ./frontend
         run: npm run lint
 
-      - name: ✅ Run frontend tests (Jest)
+      - name: ✅ Run frontend tests (Vitest)
         working-directory: ./frontend
-        run: npm test -- --ci --passWithNoTests
+        run: npm test -- --passWithNoTests
 
       - name: 🏗️ Verify frontend build
         working-directory: ./frontend

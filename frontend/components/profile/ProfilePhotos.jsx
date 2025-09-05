@@ -1,5 +1,6 @@
 import React from 'react';
 import { profileAPI } from '../../lib/api';
+import Image from 'next/image';
 
 const ProfilePhotos = ({ user, isOwnProfile }) => {
   var photos = user?.photos || [];
@@ -20,9 +21,11 @@ const ProfilePhotos = ({ user, isOwnProfile }) => {
                 className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
                 style={{ backgroundColor: 'var(--secondary-background)' }}
               >
-                <img
+                <Image
                   src={profileAPI.fetchProfileImage(photo.image)}
                   alt={photo.image}
+                  width={120}
+                  height={120}
                   className="w-full h-full object-cover"
                 />
               </div>

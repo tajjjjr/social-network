@@ -67,3 +67,17 @@ func (s *groupRequestStore) UpdateGroupRequestStatus(requestID int64, status str
 	}
 	return nil
 }
+
+func (s *groupRequestStore) AddUserToGroup(groupID, userID int64) error {
+	stmt, err := s.db.Prepare("INSERT OR IGNORE INTO Group_Members (group_id, user_id, is_accepted) VALUES (?, ?, 1)")
+	if err != nil {
+		return fmt.Errorf("error preparing statement: %w", err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(groupID, userID)
+	if err != nil {
+		return fmt.Errorf("error adding user to group: %w", err)
+	}
+	return nil
+}

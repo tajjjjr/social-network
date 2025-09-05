@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import { ImageIcon, SendIcon, X } from "lucide-react";
 import { postAPI } from "../../lib/api";
 import { profileAPI } from "../../lib/api";
+import Image from 'next/image';
 
 const CommentForm = ({ postId, user, onCommentCreated }) => {
   const [content, setContent] = useState("");
@@ -126,9 +127,11 @@ const CommentForm = ({ postId, user, onCommentCreated }) => {
       <form onSubmit={handleSubmit}>
         <div className="flex items-start gap-3 rounded-xl p-3" style={{ backgroundColor: 'var(--secondary-background)' }}>
           {/* User Avatar */}
-          <img 
+          <Image 
             src={profileAPI.fetchProfileImage(user?.avatar || '')}
             alt={user?.nickname || `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'User'}
+            width={40}
+            height={40}
             className="w-10 h-10 rounded-full object-cover flex-shrink-0" 
           />
 
@@ -153,9 +156,11 @@ const CommentForm = ({ postId, user, onCommentCreated }) => {
             {/* Image Preview */}
             {imagePreview && (
               <div className="mt-3 relative inline-block">
-                <img 
+                <Image 
                   src={imagePreview} 
                   alt="Preview" 
+                  width={128}
+                  height={128}
                   className="max-w-full max-h-32 rounded-lg object-cover"
                 />
                 <button

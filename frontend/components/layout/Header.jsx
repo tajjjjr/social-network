@@ -4,7 +4,8 @@ import { handleLogout } from '../../lib/auth';
 import { useSimpleNotifications } from '../../hooks/useNotifications';
 import { profileAPI } from '../../lib/api';
 import ClientDate from '../common/ClientDate';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import Image from 'next/image';
 
 const Header = ({ user = null }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -13,6 +14,7 @@ const Header = ({ user = null }) => {
   const notificationRef = useRef(null);
   const { unreadCount, notifications, markAllAsRead } = useSimpleNotifications();
   const router = useRouter();
+  const pathname = usePathname();
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -54,7 +56,7 @@ const Header = ({ user = null }) => {
           className="flex flex-col items-center cursor-pointer"
           onClick={() => router.push('/me')}
         >
-          <HomeIcon className="w-6 h-6" style={{ color: 'var(--primary-accent)' }} />
+          <HomeIcon className="w-6 h-6" style={{ color: pathname === '/me' ? 'var(--primary-accent)' : 'var(--primary-text)' }} />
           <span className="text-xs" style={{ color: 'var(--primary-text)' }}>Home</span>
         </div>
 
@@ -110,9 +112,12 @@ const Header = ({ user = null }) => {
           )}
         </div>
 
-        {/* Groups Icon (Disabled) */}
-        <div className="flex flex-col items-center cursor-not-allowed opacity-50">
-          <UsersIcon className="w-6 h-6" style={{ color: 'var(--primary-text)' }} />
+        {/* Groups Icon */}
+        <div
+          className="flex flex-col items-center cursor-pointer"
+          onClick={() => router.push('/groups')}
+        >
+          <UsersIcon className="w-6 h-6" style={{ color: pathname === '/groups' ? 'var(--primary-accent)' : 'var(--primary-text)' }} />
           <span className="text-xs" style={{ color: 'var(--primary-text)' }}>Groups</span>
         </div>
 
@@ -121,7 +126,7 @@ const Header = ({ user = null }) => {
           className="flex flex-col items-center cursor-pointer"
           onClick={() => router.push('/chats')}
         >
-          <MessageCircleIcon className="w-6 h-6" style={{ color: 'var(--primary-text)' }} />
+          <MessageCircleIcon className="w-6 h-6" style={{ color: pathname === '/chats' ? 'var(--primary-accent)' : 'var(--primary-text)' }} />
           <span className="text-xs" style={{ color: 'var(--primary-text)' }}>Chats</span>
         </div>
       </div>
@@ -129,7 +134,7 @@ const Header = ({ user = null }) => {
       {/* Profile Dropdown */}
       <div className="relative z-10" ref={profileRef}>
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push('/me')}>
-          <img src={profileAPI.fetchProfileImage(user.avatar ? user.avatar : '')} alt="Profile" className="w-8 h-8 rounded-full" />
+          <Image src={profileAPI.fetchProfileImage(user.avatar ? user.avatar : '')} alt="Profile" width={32} height={32} className="w-8 h-8 rounded-full" />
           <span className="text-sm font-medium">{user.nickname}</span>
         </div>
         <button

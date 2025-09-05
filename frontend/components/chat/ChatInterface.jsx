@@ -130,7 +130,7 @@ const ChatInterface = ({ user, connectionStatus = 'disconnected', recipient = nu
       notificationService.removeHandler('user_connected', handleUserConnected);
       notificationService.removeHandler('user_disconnected', handleUserDisconnected);
     };
-  }, [recipient, handlePrivateMessage, handleGroupMessage, handleBroadcastMessage, handleNotification, handleUserConnected, handleUserDisconnected]);
+  }, [recipient, handlePrivateMessage, handleGroupMessage, handleBroadcastMessage, handleNotification, handleUserConnected, handleUserDisconnected, loadChatHistory]);
 
   const loadOnlineUsers = async () => {
     try {
@@ -198,7 +198,7 @@ const ChatInterface = ({ user, connectionStatus = 'disconnected', recipient = nu
     setShowEmojiPicker(false);
   };
 
-  const loadChatHistory = async (chatType, chatId) => {
+  const loadChatHistory = useCallback(async (chatType, chatId) => {
     try {
       let history;
       let chatName = '';
@@ -238,7 +238,7 @@ const ChatInterface = ({ user, connectionStatus = 'disconnected', recipient = nu
       setMessages([]);
       setActiveChat({ type: chatType, id: chatId });
     }
-  };
+  }, [messageableUsers, groups]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

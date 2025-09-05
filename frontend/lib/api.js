@@ -367,5 +367,25 @@ export const profileAPI = {
 
 export function fetchGroupImage(avatar) {
   if (!avatar) return fallbackAvatar;
-  return `${API_BASE}/group-avatar?avatar=${encodeURIComponent(avatar)}`;
+  return `${API_BASE}/avatar?avatar=${encodeURIComponent(avatar)}`;
 }
+
+export const api = {
+  get: (endpoint) => apiCall(endpoint, { method: 'GET' }),
+  post: (endpoint, data) => apiCall(endpoint, { 
+    method: 'POST', 
+    body: data ? JSON.stringify(data) : undefined 
+  }),
+  put: (endpoint, data) => apiCall(endpoint, { 
+    method: 'PUT', 
+    body: data ? JSON.stringify(data) : undefined 
+  }),
+  delete: (endpoint) => apiCall(endpoint, { method: 'DELETE' })
+};
+
+export const groupAPI = {
+  getAvatarUrl: (avatar) => {
+    if (!avatar) return '/default-group-avatar.png';
+    return `${API_BASE}/api/image?avatar=${encodeURIComponent(avatar)}`;
+  },
+};

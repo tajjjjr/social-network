@@ -65,7 +65,7 @@ const useInfiniteScroll = (fetchFunction, options = {}) => {
 
   useEffect(() => {
     loadMore(initialPage, true);
-  }, []);
+  }, [initialPage, loadMore]);
 
   useEffect(() => {
     return () => {

@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 // import { fetchComments, updateComment, deleteComment, followUser } from "../../lib/auth";
 import { MoreHorizontalIcon, Edit, Trash2, UserPlus } from 'lucide-react';
 import CommentReactionButtons from './CommentReactionButtons';
 import ClientDate from '../common/ClientDate';
 import { profileAPI } from "../../lib/api";
 import { postAPI } from "../../lib/api";
+import Image from 'next/image';
 
 const CommentList = ({ postId, newComment, user }) => {
   const [comments, setComments] = useState([]);
@@ -31,7 +32,7 @@ const CommentList = ({ postId, newComment, user }) => {
   };
 
   // Load comments
-  const loadComments = async () => {
+  const loadComments = useCallback(async () => {
     try {
       setLoading(true);
       const result = await postAPI.fetchComments(postId);
@@ -48,14 +49,14 @@ const CommentList = ({ postId, newComment, user }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [postId]);
 
   // Load comments on mount and when postId changes
   useEffect(() => {
     if (postId) {
       loadComments();
     }
-  }, [postId]);
+  }, [postId, loadComments]);
 
   // Add new comment to the list when one is created
   useEffect(() => {
@@ -189,11 +190,13 @@ const CommentList = ({ postId, newComment, user }) => {
       {comments.map((comment) => (
         <div key={comment.id} className="flex gap-3">
           {/* Comment Author Avatar */}
-          <img
+          <Image
             src={
               profileAPI.fetchProfileImage(comment.author?.avatar || '')
             }
             alt={getDisplayName(comment.author)}
+            width={32}
+            height={32}
             className="w-8 h-8 rounded-full object-cover flex-shrink-0"
           />
 
@@ -218,13 +221,12 @@ const CommentList = ({ postId, newComment, user }) => {
               {/* Comment Image */}
               {comment.image && (
                 <div className="mt-2">
-                  <img
+                  <Image
                     src={`http://localhost:9000/avatar?avatar=${comment.image}`}
                     alt="Comment image"
+                    width={192}
+                    height={192}
                     className="max-w-full max-h-48 rounded-lg object-cover"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                    }}
                   />
                 </div>
               )}

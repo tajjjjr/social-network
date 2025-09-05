@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  outputFileTracingRoot: '/home/jamos/Documents/social-network/frontend',
   images: {
     remotePatterns: [
       {

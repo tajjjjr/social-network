@@ -1,0 +1,31 @@
+Title: Feature: Implement Group Chat Enhancements and Unread Chat Functionality
+
+Description:
+This pull request introduces several key features and improvements related to group chat functionality and unread chat management, enhancing the overall user experience.
+
+Key Changes:
+
+1.  **Frontend Lint Errors Fixed:**
+    *   Resolved `useEffect` dependency warnings by correctly wrapping `loadData` in `useCallback` and managing its dependencies.
+    *   Replaced `<img>` tags with Next.js `<Image>` components for optimized image loading and improved performance.
+    *   Corrected an instance of duplicated `MessageCircleIcon` in the chat interface.
+
+2.  **Comprehensive Group Chat Implementation:**
+    *   **`components/chat/ChatInterface.jsx` Refactoring:** Enhanced to fully support group chats, including dynamic loading of group history and displaying group names.
+    *   **Backend Integration (`lib/api.js`):** The `getGroups` function now fetches actual group data from the backend, replacing previous mock implementations. New API calls for `getUnreadChats`, `getUnreadChatCount`, and `fetchGroupImage` have been added to support new features.
+    *   **Simplified Chat Page (`src/app/chats/[userId]/page.js`):** Streamlined to handle both private and group chat views efficiently using a unified `recipient` prop.
+    *   **Chat View Switching (`components/chat/ChatSwitcher.jsx`):** Introduced a dedicated component for seamless navigation between "All Chats", "Unread", and "Groups" views.
+
+3.  **Enhanced Error Handling and User Experience:**
+    *   **Graceful Data Fetching:** Modified `src/app/chats/page.js` to prevent visible error messages on the frontend when chat data (including group data) is not immediately available, ensuring a smoother user experience.
+    *   **New Group Welcome Messages:** Implemented logic in `components/chat/ChatInterface.jsx` to display a friendly welcome message in newly created group chats that have no prior message history.
+
+4.  **Unread Chat Functionality:**
+    *   **Unread Chat Fetching:** Integrated the ability to fetch unread conversations from the backend.
+    *   **Unread Chat Count:** Implemented a feature to display the total count of unread chats, visible in the `ChatSwitcher` component.
+
+5.  **Dynamic Group Profile Pictures:**
+    *   **Backend Integration:** Added `fetchGroupImage` to `lib/api.js` to retrieve group profile pictures from the database.
+    *   **Frontend Rendering:** Updated `src/app/chats/page.js` to utilize `chatAPI.fetchGroupImage` for rendering group avatars, ensuring dynamic and accurate display.
+
+This PR significantly improves the chat module's functionality, making group interactions more robust and user-friendly, while also providing better visibility into unread messages.

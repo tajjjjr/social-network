@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Search, X, User } from 'lucide-react';
+import Image from 'next/image';
 
 const UserSearch = ({ selectedUsers, onUserSelect, onUserRemove }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -105,9 +106,11 @@ const UserSearch = ({ selectedUsers, onUserSelect, onUserRemove }) => {
             >
               <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--tertiary-background)' }}>
                 {user.avatar && user.avatar !== "no profile photo" ? (
-                  <img
+                  <Image
                     src={`http://localhost:9000/avatar?avatar=${encodeURIComponent(user.avatar)}`}
                     alt={getDisplayName(user)}
+                    width={24}
+                    height={24}
                     className="w-6 h-6 rounded-full object-cover"
                   />
                 ) : (
@@ -174,9 +177,11 @@ const UserSearch = ({ selectedUsers, onUserSelect, onUserRemove }) => {
               >
                 <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--tertiary-background)' }}>
                   {user.avatar && user.avatar !== "no profile photo" ? (
-                    <img
+                    <Image
                       src={`http://localhost:9000/avatar?avatar=${encodeURIComponent(user.avatar)}`}
                       alt={getDisplayName(user)}
+                      width={32}
+                      height={32}
                       className="w-8 h-8 rounded-full object-cover"
                     />
                   ) : (

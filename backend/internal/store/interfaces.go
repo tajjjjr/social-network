@@ -24,12 +24,16 @@ type PostStoreInterface interface {
 type GroupStore interface {
 	CreateGroup(group *models.Group) (*models.Group, error)
 	GetGroupByID(groupID int64) (*models.Group, error)
+	SearchPublicGroups(query string) ([]*models.Group, error)
+	GetAllPublicGroups() ([]*models.Group, error)
+	GetUserGroups(userID int64) ([]*models.Group, error)
 }
 
 type GroupRequestStore interface {
 	CreateGroupRequest(request *models.GroupRequest) (*models.GroupRequest, error)
 	GetGroupRequestByID(requestID int64) (*models.GroupRequest, error)
 	UpdateGroupRequestStatus(requestID int64, status string) error
+	AddUserToGroup(groupID, userID int64) error
 }
 
 type GroupChatMessageStore interface {

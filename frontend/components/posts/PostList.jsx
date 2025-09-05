@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 // import { fetchPostsPaginated, deletePost, updatePost } from '../../lib/auth';
 import { MoreHorizontalIcon, MessageCircleIcon, Globe, Users, Lock, Edit, Trash2, UserPlus, User } from 'lucide-react';
 import VerifiedBadge from '../homepage/VerifiedBadge';
@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { generateInitialSkeletons, generatePaginationSkeletons } from '../../lib/skeletonUtils';
 import { profileAPI } from '../../lib/api';
 import { postAPI } from '../../lib/api';
+import Image from 'next/image';
 
 const PostList = ({ refreshTrigger, user, posts: initialPosts, profileView = false }) => {
   const router = useRouter();
@@ -73,11 +74,11 @@ const PostList = ({ refreshTrigger, user, posts: initialPosts, profileView = fal
     }
   }, [refreshTrigger, initialPosts]);
 
-  const loadMorePosts = () => {
+  const loadMorePosts = useCallback(() => {
     if (loadingRef.current || loadingMore || !hasMore) return;
     loadingRef.current = true;
     loadPosts(page, true);
-  };
+  }, [loadingMore, hasMore, page]);
 
   useEffect(() => {
     // Don't add scroll listener in profile view
@@ -93,7 +94,7 @@ const PostList = ({ refreshTrigger, user, posts: initialPosts, profileView = fal
     const debouncedScroll = debounce(handleScroll, 200);
     window.addEventListener('scroll', debouncedScroll);
     return () => window.removeEventListener('scroll', debouncedScroll);
-  }, [page, loadingMore, hasMore, profileView]);
+  }, [page, loadingMore, hasMore, profileView, loadMorePosts]);
 
   const debounce = (func, wait) => {
     let timeout;
@@ -295,9 +296,11 @@ const PostList = ({ refreshTrigger, user, posts: initialPosts, profileView = fal
           <div className="flex justify-between mb-3">
             <div className="flex items-center gap-2">
               <div className="relative">
-                <img
+                <Image
                   src={profileAPI.fetchProfileImage(post.author?.avatar || '')}
                   alt={post.author?.nickname || `${post.author?.first_name || ''} ${post.author?.last_name || ''}`.trim() || 'User'}
+                  width={40}
+                  height={40}
                   className="w-10 h-10 rounded-full"
                 />
                 <div className="absolute -bottom-1 -right-1">
@@ -419,9 +422,11 @@ const PostList = ({ refreshTrigger, user, posts: initialPosts, profileView = fal
             {/* Post Image */}
             {post.image && (
               <div className="mt-3">
-                <img
+                <Image
                   src={`http://localhost:9000/avatar?avatar=${post.image}`}
                   alt="Post image"
+                  width={400}
+                  height={300}
                   className="max-w-full rounded-lg"
                   onError={(e) => {
                     e.target.style.display = 'none';

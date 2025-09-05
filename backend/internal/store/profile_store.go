@@ -224,7 +224,7 @@ func (followstore *ProfileStore) GetUserFollowees(userid int64) (models.FollowLi
 	return followersList, nil
 }
 
-func (pr *ProfileStore)GetUserPostPhotos(userId int64) ([]models.Photo, error) {
+func (pr *ProfileStore) GetUserPostPhotos(userId int64) ([]models.Photo, error) {
 	var photos []models.Photo
 	rows, err := pr.DB.Query(`
 		SELECT p.image
@@ -255,8 +255,7 @@ func (pr *ProfileStore)GetUserPostPhotos(userId int64) ([]models.Photo, error) {
 	return photos, nil
 }
 
-
-func (pr *ProfileStore)GetUserCommentPhotos(userId int64) ([]models.Photo, error) {
+func (pr *ProfileStore) GetUserCommentPhotos(userId int64) ([]models.Photo, error) {
 	var photos []models.Photo
 	rows, err := pr.DB.Query(`
 		SELECT c.image
@@ -286,7 +285,6 @@ func (pr *ProfileStore)GetUserCommentPhotos(userId int64) ([]models.Photo, error
 
 	return photos, nil
 }
-
 
 // Helper function to handle null string values
 func getStringValue(s sql.NullString) string {

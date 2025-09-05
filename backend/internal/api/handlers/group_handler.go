@@ -8,11 +8,8 @@ import (
 
 	"github.com/tajjjjr/social-network/backend/internal/models"
 	"github.com/tajjjjr/social-network/backend/internal/service"
+	"github.com/tajjjjr/social-network/backend/pkg/utils"
 )
-
-
-type contextKey string
-const userIDKey contextKey = "userID"
 
 type GroupHandler struct {
 	groupService            service.GroupService
@@ -25,21 +22,39 @@ func NewGroupHandler(groupService service.GroupService, groupRequestService serv
 }
 
 func (h *GroupHandler) CreateGroup(w http.ResponseWriter, r *http.Request) {
-	var group models.Group
-	if err := json.NewDecoder(r.Body).Decode(&group); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	creatorID, ok := r.Context().Value(userIDKey).(int64)
+	creatorID, ok := r.Context().Value(utils.User_id).(int64)
 	if !ok {
 		http.Error(w, "User ID not found in context", http.StatusUnauthorized)
 		return
 	}
-	group.CreatorID = creatorID
 
+	// Parse multipart form data
+	err := r.ParseMultipartForm(10 << 20) // 10 MB limit
+	if err != nil {
+		http.Error(w, "Failed to parse form data", http.StatusBadRequest)
+		return
+	}
+
+	group := models.Group{
+		CreatorID:   creatorID,
+		Title:       r.FormValue("title"),
+		Description: r.FormValue("description"),
+		Privacy:     r.FormValue("privacy"),
+	}
 	if group.Privacy == "" {
 		group.Privacy = "public"
+	}
+
+	// Handle avatar upload if present
+	file, header, err := r.FormFile("avatar")
+	if err == nil {
+		defer file.Close()
+		avatarPath, err := UploadAvatarImage(file, header)
+		if err != nil {
+			http.Error(w, "Failed to upload avatar: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		group.Avatar = avatarPath
 	}
 
 	newGroup, err := h.groupService.CreateGroup(&group)
@@ -62,13 +77,13 @@ func (h *GroupHandler) SendJoinRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, ok := r.Context().Value(userIDKey).(int64)
+	userID, ok := r.Context().Value(utils.User_id).(int64)
 	if !ok {
 		http.Error(w, "User ID not found in context", http.StatusUnauthorized)
 		return
 	}
 
-		request, err := h.groupRequestService.SendJoinRequest(int64(groupID), int64(userID))
+	request, err := h.groupRequestService.SendJoinRequest(int64(groupID), int64(userID))
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to send join request: %v", err), http.StatusInternalServerError)
 		return
@@ -96,7 +111,7 @@ func (h *GroupHandler) ApproveJoinRequest(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	approverID, ok := r.Context().Value(userIDKey).(int)
+	approverID, ok := r.Context().Value(utils.User_id).(int64)
 	if !ok {
 		http.Error(w, "Approver ID not found in context", http.StatusUnauthorized)
 		return
@@ -123,7 +138,7 @@ func (h *GroupHandler) RejectJoinRequest(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	rejecterID, ok := r.Context().Value(userIDKey).(int)
+	rejecterID, ok := r.Context().Value(utils.User_id).(int64)
 	if !ok {
 		http.Error(w, "Rejecter ID not found in context", http.StatusUnauthorized)
 		return
@@ -150,7 +165,7 @@ func (h *GroupHandler) SendGroupChatMessage(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	senderID, ok := r.Context().Value(userIDKey).(int)
+	senderID, ok := r.Context().Value(utils.User_id).(int64)
 	if !ok {
 		http.Error(w, "Sender ID not found in context", http.StatusUnauthorized)
 		return
@@ -185,7 +200,7 @@ func (h *GroupHandler) GetGroupChatMessages(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	userID, ok := r.Context().Value(userIDKey).(int)
+	userID, ok := r.Context().Value(utils.User_id).(int64)
 	if !ok {
 		http.Error(w, "User ID not found in context", http.StatusUnauthorized)
 		return
@@ -211,6 +226,56 @@ func (h *GroupHandler) GetGroupChatMessages(w http.ResponseWriter, r *http.Reque
 
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(messages); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *GroupHandler) SearchPublicGroups(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("query")
+
+	groups, err := h.groupService.SearchPublicGroups(query)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to search public groups: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(groups); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *GroupHandler) GetAllPublicGroups(w http.ResponseWriter, r *http.Request) {
+	groups, err := h.groupService.GetAllPublicGroups()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to get public groups: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(groups); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *GroupHandler) GetUserGroups(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(utils.User_id).(int64)
+	if !ok {
+		http.Error(w, "User ID not found in context", http.StatusUnauthorized)
+		return
+	}
+
+	groups, err := h.groupService.GetUserGroups(userID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to get user groups: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(groups); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
 		return
 	}

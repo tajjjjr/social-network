@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { CameraIcon, EditIcon, UserPlusIcon, X, Save } from 'lucide-react';
 import { profileAPI, updateProfile } from '../../lib/api';
 import { wsService } from '../../lib/websocket';
+import Image from 'next/image';
 
 const ProfileCover = ({ user, currentUser, isOwnProfile, refreshProfile }) => {
   const profileDetails = user?.profile_details || {};
@@ -243,9 +244,11 @@ const ProfileCover = ({ user, currentUser, isOwnProfile, refreshProfile }) => {
                 style={{ backgroundColor: 'var(--primary-accent)' }}
                 onClick={isOwnProfile ? handleImageClick : undefined}
               >
-                <img
+                <Image
                   src={profileAPI.fetchProfileImage(profileDetails.avatar || '')}
                   alt="Profile"
+                  width={160}
+                  height={160}
                   className="w-full h-full rounded-full object-cover"
                 />
               </div>
@@ -361,9 +364,11 @@ const ProfileCover = ({ user, currentUser, isOwnProfile, refreshProfile }) => {
               {/* Profile Picture Section */}
               <div className="flex items-center gap-4 mb-6">
                 <div className="relative">
-                  <img
+                  <Image
                     src={previewImage || profileAPI.fetchProfileImage(profileDetails.avatar || '')}
                     alt="Profile"
+                    width={80}
+                    height={80}
                     className="w-20 h-20 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
                     onClick={handleImageClick}
                   />

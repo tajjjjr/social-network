@@ -5,17 +5,22 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/tajjjjr/social-network/backend/internal/models"
+	"github.com/tajjjjr/social-network/backend/pkg/utils"
 )
 
 // MockGroupService is a mock implementation of the GroupService for testing.
 type MockGroupService struct {
-	CreateGroupFunc  func(group *models.Group) (*models.Group, error)
-	GetGroupByIDFunc func(groupID int64) (*models.Group, error)
+	CreateGroupFunc        func(group *models.Group) (*models.Group, error)
+	GetGroupByIDFunc       func(groupID int64) (*models.Group, error)
+	SearchPublicGroupsFunc func(query string) ([]*models.Group, error)
+	GetAllPublicGroupsFunc func() ([]*models.Group, error)
+	GetUserGroupsFunc      func(userID int64) ([]*models.Group, error)
 }
 
 func (m *MockGroupService) CreateGroup(group *models.Group) (*models.Group, error) {
@@ -30,6 +35,27 @@ func (m *MockGroupService) GetGroupByID(groupID int64) (*models.Group, error) {
 		return m.GetGroupByIDFunc(groupID)
 	}
 	return nil, errors.New("GetGroupByID not implemented")
+}
+
+func (m *MockGroupService) SearchPublicGroups(query string) ([]*models.Group, error) {
+	if m.SearchPublicGroupsFunc != nil {
+		return m.SearchPublicGroupsFunc(query)
+	}
+	return nil, errors.New("SearchPublicGroups not implemented")
+}
+
+func (m *MockGroupService) GetAllPublicGroups() ([]*models.Group, error) {
+	if m.GetAllPublicGroupsFunc != nil {
+		return m.GetAllPublicGroupsFunc()
+	}
+	return nil, errors.New("GetAllPublicGroups not implemented")
+}
+
+func (m *MockGroupService) GetUserGroups(userID int64) ([]*models.Group, error) {
+	if m.GetUserGroupsFunc != nil {
+		return m.GetUserGroupsFunc(userID)
+	}
+	return nil, errors.New("GetUserGroups not implemented")
 }
 
 // MockGroupRequestService is a mock implementation of the GroupRequestService for testing.
@@ -94,21 +120,28 @@ func TestCreateGroup(t *testing.T) {
 
 		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
 
-		group := &models.Group{
-			Title:       "Test Group",
-			Description: "This is a test group.",
-			CreatorID:   1,
-			Privacy:     "public",
+		// Create multipart form data
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		if err := writer.WriteField("title", "Test Group"); err != nil {
+			t.Fatal(err)
 		}
+		if err := writer.WriteField("description", "This is a test group."); err != nil {
+			t.Fatal(err)
+		}
+		if err := writer.WriteField("privacy", "public"); err != nil {
+			t.Fatal(err)
+		}
+		writer.Close()
 
-		body, _ := json.Marshal(group)
-		req, err := http.NewRequest("POST", "/groups", bytes.NewReader(body))
+		req, err := http.NewRequest("POST", "/groups", body)
 		if err != nil {
 			t.Fatal(err)
 		}
+		req.Header.Set("Content-Type", writer.FormDataContentType())
 
 		// Add user ID to context (as int64 for CreateGroup)
-		ctx := context.WithValue(req.Context(), userIDKey, int64(1))
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(1))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -138,10 +171,15 @@ func TestCreateGroup(t *testing.T) {
 
 		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
 
-		req, err := http.NewRequest("POST", "/groups", bytes.NewReader([]byte("invalid json")))
+		req, err := http.NewRequest("POST", "/groups", bytes.NewReader([]byte("invalid form data")))
 		if err != nil {
 			t.Fatal(err)
 		}
+		req.Header.Set("Content-Type", "multipart/form-data")
+
+		// Add user ID to context
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(1))
+		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
 		h.CreateGroup(rr, req)
@@ -160,17 +198,25 @@ func TestCreateGroup(t *testing.T) {
 
 		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
 
-		group := &models.Group{
-			Title:       "Test Group",
-			Description: "This is a test group.",
-			Privacy:     "public",
+		// Create multipart form data
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		if err := writer.WriteField("title", "Test Group"); err != nil {
+			t.Fatal(err)
 		}
+		if err := writer.WriteField("description", "This is a test group."); err != nil {
+			t.Fatal(err)
+		}
+		if err := writer.WriteField("privacy", "public"); err != nil {
+			t.Fatal(err)
+		}
+		writer.Close()
 
-		body, _ := json.Marshal(group)
-		req, err := http.NewRequest("POST", "/groups", bytes.NewReader(body))
+		req, err := http.NewRequest("POST", "/groups", body)
 		if err != nil {
 			t.Fatal(err)
 		}
+		req.Header.Set("Content-Type", writer.FormDataContentType())
 
 		rr := httptest.NewRecorder()
 		h.CreateGroup(rr, req)
@@ -207,7 +253,7 @@ func TestSendJoinRequest(t *testing.T) {
 		req.SetPathValue("groupID", "1")
 
 		// Add user ID to context (as int64 for SendJoinRequest)
-		ctx := context.WithValue(req.Context(), userIDKey, int64(101))
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -247,7 +293,7 @@ func TestSendJoinRequest(t *testing.T) {
 		req.SetPathValue("groupID", "invalid")
 
 		// Add user ID to context (as int64 for SendJoinRequest)
-		ctx := context.WithValue(req.Context(), userIDKey, int64(101))
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -307,7 +353,7 @@ func TestSendJoinRequest(t *testing.T) {
 		req.SetPathValue("groupID", "1")
 
 		// Add user ID to context (as int64 for SendJoinRequest)
-		ctx := context.WithValue(req.Context(), userIDKey, int64(101))
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -342,7 +388,7 @@ func TestApproveJoinRequest(t *testing.T) {
 		req.SetPathValue("requestID", "1")
 
 		// Add user ID to context (as int for ApproveJoinRequest)
-		ctx := context.WithValue(req.Context(), userIDKey, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -380,7 +426,7 @@ func TestApproveJoinRequest(t *testing.T) {
 		req.SetPathValue("requestID", "invalid")
 
 		// Add user ID to context (as int for ApproveJoinRequest)
-		ctx := context.WithValue(req.Context(), userIDKey, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -438,7 +484,7 @@ func TestApproveJoinRequest(t *testing.T) {
 		req.SetPathValue("requestID", "1")
 
 		// Add user ID to context (as int for ApproveJoinRequest)
-		ctx := context.WithValue(req.Context(), userIDKey, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -473,7 +519,7 @@ func TestRejectJoinRequest(t *testing.T) {
 		req.SetPathValue("requestID", "1")
 
 		// Add user ID to context (as int for RejectJoinRequest)
-		ctx := context.WithValue(req.Context(), userIDKey, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -511,7 +557,7 @@ func TestRejectJoinRequest(t *testing.T) {
 		req.SetPathValue("requestID", "invalid")
 
 		// Add user ID to context (as int for RejectJoinRequest)
-		ctx := context.WithValue(req.Context(), userIDKey, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -569,7 +615,7 @@ func TestRejectJoinRequest(t *testing.T) {
 		req.SetPathValue("requestID", "1")
 
 		// Add user ID to context (as int for RejectJoinRequest)
-		ctx := context.WithValue(req.Context(), userIDKey, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -608,7 +654,7 @@ func TestSendGroupChatMessage(t *testing.T) {
 		req.SetPathValue("groupID", "1")
 
 		// Add user ID to context (as int for SendGroupChatMessage)
-		ctx := context.WithValue(req.Context(), userIDKey, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -646,7 +692,7 @@ func TestSendGroupChatMessage(t *testing.T) {
 		req.SetPathValue("groupID", "invalid")
 
 		// Add user ID to context (as int for SendGroupChatMessage)
-		ctx := context.WithValue(req.Context(), userIDKey, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -674,7 +720,7 @@ func TestSendGroupChatMessage(t *testing.T) {
 		req.SetPathValue("groupID", "1")
 
 		// Add user ID to context (as int for SendGroupChatMessage)
-		ctx := context.WithValue(req.Context(), userIDKey, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -736,7 +782,7 @@ func TestSendGroupChatMessage(t *testing.T) {
 		req.SetPathValue("groupID", "1")
 
 		// Add user ID to context (as int for SendGroupChatMessage)
-		ctx := context.WithValue(req.Context(), userIDKey, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -777,7 +823,7 @@ func TestGetGroupChatMessages(t *testing.T) {
 		req.SetPathValue("groupID", "1")
 
 		// Add user ID to context (as int for GetGroupChatMessages)
-		ctx := context.WithValue(req.Context(), userIDKey, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -817,7 +863,7 @@ func TestGetGroupChatMessages(t *testing.T) {
 		req.SetPathValue("groupID", "invalid")
 
 		// Add user ID to context (as int for GetGroupChatMessages)
-		ctx := context.WithValue(req.Context(), userIDKey, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -877,7 +923,7 @@ func TestGetGroupChatMessages(t *testing.T) {
 		req.SetPathValue("groupID", "1")
 
 		// Add user ID to context (as int for GetGroupChatMessages)
-		ctx := context.WithValue(req.Context(), userIDKey, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -919,7 +965,7 @@ func TestGetGroupChatMessages(t *testing.T) {
 		req.SetPathValue("groupID", "1")
 
 		// Add user ID to context (as int for GetGroupChatMessages)
-		ctx := context.WithValue(req.Context(), userIDKey, 101)
+		ctx := context.WithValue(req.Context(), utils.User_id, int64(101))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -928,6 +974,110 @@ func TestGetGroupChatMessages(t *testing.T) {
 		if status := rr.Code; status != http.StatusOK {
 			t.Errorf("handler returned wrong status code: got %v want %v",
 				status, http.StatusOK)
+		}
+	})
+}
+
+func TestSearchPublicGroups(t *testing.T) {
+	// Test case 1: Successful search
+	t.Run("Successful search", func(t *testing.T) {
+		mockGroupService := &MockGroupService{
+			SearchPublicGroupsFunc: func(query string) ([]*models.Group, error) {
+				return []*models.Group{
+					{ID: 1, Title: "Public Group 1", Description: "Desc 1", Privacy: "public"},
+					{ID: 2, Title: "Another Public Group", Description: "Desc 2", Privacy: "public"},
+				}, nil
+			},
+		}
+		mockGroupRequestService := &MockGroupRequestService{}
+		mockGroupChatMessageService := &MockGroupChatMessageService{}
+
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+
+		req, err := http.NewRequest("GET", "/groups/search?query=public", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rr := httptest.NewRecorder()
+		h.SearchPublicGroups(rr, req)
+
+		if status := rr.Code; status != http.StatusOK {
+			t.Errorf("handler returned wrong status code: got %v want %v",
+				status, http.StatusOK)
+		}
+
+		var groups []models.Group
+		if err := json.NewDecoder(rr.Body).Decode(&groups); err != nil {
+			t.Fatal(err)
+		}
+
+		if len(groups) != 2 {
+			t.Errorf("Expected 2 groups, got %d", len(groups))
+		}
+		if groups[0].Title != "Public Group 1" {
+			t.Errorf("Expected first group title 'Public Group 1', got %s", groups[0].Title)
+		}
+	})
+
+	// Test case 2: No results found
+	t.Run("No results found", func(t *testing.T) {
+		mockGroupService := &MockGroupService{
+			SearchPublicGroupsFunc: func(query string) ([]*models.Group, error) {
+				return []*models.Group{}, nil
+			},
+		}
+		mockGroupRequestService := &MockGroupRequestService{}
+		mockGroupChatMessageService := &MockGroupChatMessageService{}
+
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+
+		req, err := http.NewRequest("GET", "/groups/search?query=nonexistent", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rr := httptest.NewRecorder()
+		h.SearchPublicGroups(rr, req)
+
+		if status := rr.Code; status != http.StatusOK {
+			t.Errorf("handler returned wrong status code: got %v want %v",
+				status, http.StatusOK)
+		}
+
+		var groups []models.Group
+		if err := json.NewDecoder(rr.Body).Decode(&groups); err != nil {
+			t.Fatal(err)
+		}
+
+		if len(groups) != 0 {
+			t.Errorf("Expected 0 groups, got %d", len(groups))
+		}
+	})
+
+	// Test case 3: Service error
+	t.Run("Service error", func(t *testing.T) {
+		mockGroupService := &MockGroupService{
+			SearchPublicGroupsFunc: func(query string) ([]*models.Group, error) {
+				return nil, errors.New("service error")
+			},
+		}
+		mockGroupRequestService := &MockGroupRequestService{}
+		mockGroupChatMessageService := &MockGroupChatMessageService{}
+
+		h := NewGroupHandler(mockGroupService, mockGroupRequestService, mockGroupChatMessageService)
+
+		req, err := http.NewRequest("GET", "/groups/search?query=error", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rr := httptest.NewRecorder()
+		h.SearchPublicGroups(rr, req)
+
+		if status := rr.Code; status != http.StatusInternalServerError {
+			t.Errorf("handler returned wrong status code: got %v want %v",
+				status, http.StatusInternalServerError)
 		}
 	})
 }
