@@ -280,3 +280,24 @@ func (h *GroupHandler) GetUserGroups(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+func (h *GroupHandler) GetGroupByID(w http.ResponseWriter, r *http.Request) {
+	groupIDStr := r.PathValue("groupID")
+	groupID, err := strconv.Atoi(groupIDStr)
+	if err != nil {
+		http.Error(w, "Invalid group ID", http.StatusBadRequest)
+		return
+	}
+
+	group, err := h.groupService.GetGroupByID(int64(groupID))
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to get group: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(group); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
+		return
+	}
+}
