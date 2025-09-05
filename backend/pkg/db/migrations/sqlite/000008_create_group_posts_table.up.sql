@@ -5,7 +5,10 @@ CREATE TABLE IF NOT EXISTS Group_Posts (
     user_id INTEGER NOT NULL,
     content TEXT,
     image TEXT,
+    like_count INTEGER DEFAULT 0,
+    dislike_count INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (group_id) REFERENCES Groups(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
 );
