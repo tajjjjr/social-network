@@ -41,7 +41,6 @@ func (h *GroupHandler) CreateGroup(w http.ResponseWriter, r *http.Request) {
 		Description: r.FormValue("description"),
 		Privacy:     r.FormValue("privacy"),
 	}
-
 	if group.Privacy == "" {
 		group.Privacy = "public"
 	}

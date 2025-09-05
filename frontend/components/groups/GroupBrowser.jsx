@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { api } from '../../lib/api';
+import { api, fetchGroupImage } from '../../lib/api';
 
 export default function GroupBrowser({ user }) {
   const [groups, setGroups] = useState([]);
@@ -110,10 +110,17 @@ export default function GroupBrowser({ user }) {
 
   const GroupCard = ({ group, showJoinButton = true }) => {
     const isCreator = user && group.creator_id === user.id;
-    
     return (
       <div className="rounded-lg shadow p-4 mb-4" style={{ backgroundColor: 'var(--secondary-background)' }}>
-        <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--primary-text)' }}>{group.title}</h3>
+        <div className="flex items-center gap-4 mb-2">
+          <img
+            src={fetchGroupImage(group.avatar)}
+            alt={group.title + ' avatar'}
+            className="w-12 h-12 rounded-full object-cover border"
+            onError={e => { e.target.src = '/default-group-avatar.png'; }}
+          />
+          <h3 className="text-lg font-semibold" style={{ color: 'var(--primary-text)' }}>{group.title}</h3>
+        </div>
         <p className="mb-3" style={{ color: 'var(--secondary-text)' }}>{group.description}</p>
         <div className="flex justify-between items-center">
           <span className="text-sm" style={{ color: 'var(--secondary-text)' }}>
