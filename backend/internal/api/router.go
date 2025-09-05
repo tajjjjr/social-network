@@ -45,6 +45,7 @@ func NewRouter(db *sql.DB) http.Handler {
 	groupRequestStore := store.NewGroupRequestStore(db)
 	groupChatMessageStore := store.NewGroupChatMessageStore(db)
 	groupMemberStore := store.NewGroupMemberStore(db)
+	groupPostStore := store.NewGroupPostStore(db)
 
 	postService := service.NewPostService(postStore)
 	authService := service.NewAuthService(authStore)
@@ -56,6 +57,7 @@ func NewRouter(db *sql.DB) http.Handler {
 	groupService := service.NewGroupService(groupStore)
 	groupRequestService := service.NewGroupRequestService(groupRequestStore, groupService)
 	groupChatMessageService := service.NewGroupChatMessageService(groupChatMessageStore, groupService, groupMemberStore)
+	groupPostService := service.NewGroupPostService(groupPostStore)
 
 	postHandler := handlers.NewPostHandler(postService)
 	authHandler := handlers.NewAuthHandler(authService)
@@ -65,6 +67,7 @@ func NewRouter(db *sql.DB) http.Handler {
 	reactionHandler := handlers.NewReactionHandler(reactionService)
 	profileHandler := handlers.NewProfileHandler(profileService)
 	groupHandler := handlers.NewGroupHandler(groupService, groupRequestService, groupChatMessageService)
+	groupPostHandler := handlers.NewGroupPostHandler(groupPostService)
 
 	mux.HandleFunc("POST /validate/step1", authHandler.ValidateAccountStepOne)
 	mux.HandleFunc("POST /register", authHandler.Signup)
@@ -83,6 +86,14 @@ func NewRouter(db *sql.DB) http.Handler {
 
 	mux.Handle("POST /groups/{groupID}/chat", middleware.AuthMiddleware(db)(http.HandlerFunc(groupHandler.SendGroupChatMessage)))
 	mux.Handle("GET /groups/{groupID}/chat", middleware.AuthMiddleware(db)(http.HandlerFunc(groupHandler.GetGroupChatMessages)))
+
+	// Group Posts routes
+	mux.Handle("POST /groups/{groupID}/posts", middleware.AuthMiddleware(db)(http.HandlerFunc(groupPostHandler.CreateGroupPost)))
+	mux.Handle("GET /groups/{groupID}/posts", middleware.AuthMiddleware(db)(http.HandlerFunc(groupPostHandler.GetGroupPosts)))
+	mux.Handle("PUT /groups/{groupID}/posts/{postID}", middleware.AuthMiddleware(db)(http.HandlerFunc(groupPostHandler.UpdateGroupPost)))
+	mux.Handle("DELETE /groups/{groupID}/posts/{postID}", middleware.AuthMiddleware(db)(http.HandlerFunc(groupPostHandler.DeleteGroupPost)))
+	mux.Handle("POST /groups/{groupID}/posts/{postID}/comments", middleware.AuthMiddleware(db)(http.HandlerFunc(groupPostHandler.CreateGroupPostComment)))
+	mux.Handle("GET /groups/{groupID}/posts/{postID}/comments", middleware.AuthMiddleware(db)(http.HandlerFunc(groupPostHandler.GetGroupPostComments)))
 	mux.Handle("POST /posts", middleware.AuthMiddleware(db)(http.HandlerFunc(postHandler.CreatePost)))
 	mux.Handle("GET /posts/{postId}", middleware.AuthMiddleware(db)(http.HandlerFunc(postHandler.GetPostByID)))
 	mux.Handle("GET /posts", middleware.AuthMiddleware(db)(http.HandlerFunc(postHandler.GetPosts)))
