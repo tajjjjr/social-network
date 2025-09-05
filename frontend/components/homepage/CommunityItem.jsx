@@ -1,9 +1,9 @@
 import React from 'react';
 import Image from 'next/image';
 
-const CommunityItem = ({ icon, name, memberCount }) => {
+const CommunityItem = ({ icon, name, memberCount, onClick }) => {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity" onClick={onClick}>
       <div
         className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center"
         style={{ backgroundColor: 'var(--tertiary-text)' }}

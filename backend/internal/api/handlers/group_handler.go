@@ -301,3 +301,39 @@ func (h *GroupHandler) GetGroupByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+func (h *GroupHandler) GetGroupEvents(w http.ResponseWriter, r *http.Request) {
+	groupIDStr := r.PathValue("groupID")
+	_, err := strconv.Atoi(groupIDStr)
+	if err != nil {
+		http.Error(w, "Invalid group ID", http.StatusBadRequest)
+		return
+	}
+
+	// For now, return empty array - implement when event service is ready
+	events := []interface{}{}
+
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(events); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *GroupHandler) GetGroupMembers(w http.ResponseWriter, r *http.Request) {
+	groupIDStr := r.PathValue("groupID")
+	_, err := strconv.Atoi(groupIDStr)
+	if err != nil {
+		http.Error(w, "Invalid group ID", http.StatusBadRequest)
+		return
+	}
+
+	// For now, return empty array - implement when member service is ready
+	members := []interface{}{}
+
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(members); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
+		return
+	}
+}

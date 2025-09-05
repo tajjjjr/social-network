@@ -80,6 +80,7 @@ func NewRouter(db *sql.DB) http.Handler {
 	mux.Handle("GET /groups", middleware.AuthMiddleware(db)(http.HandlerFunc(groupHandler.GetAllPublicGroups)))
 	mux.Handle("GET /groups/search", middleware.AuthMiddleware(db)(http.HandlerFunc(groupHandler.SearchPublicGroups)))
 	mux.Handle("GET /groups/my-groups", middleware.AuthMiddleware(db)(http.HandlerFunc(groupHandler.GetUserGroups)))
+	mux.Handle("GET /groups/{groupID}", middleware.AuthMiddleware(db)(http.HandlerFunc(groupHandler.GetGroupByID)))
 	mux.Handle("POST /groups/{groupID}/join-request", middleware.AuthMiddleware(db)(http.HandlerFunc(groupHandler.SendJoinRequest)))
 	mux.Handle("PUT /groups/{groupID}/join-request/{requestID}/approve", middleware.AuthMiddleware(db)(http.HandlerFunc(groupHandler.ApproveJoinRequest)))
 	mux.Handle("PUT /groups/{groupID}/join-request/{requestID}/reject", middleware.AuthMiddleware(db)(http.HandlerFunc(groupHandler.RejectJoinRequest)))
@@ -94,6 +95,10 @@ func NewRouter(db *sql.DB) http.Handler {
 	mux.Handle("DELETE /groups/{groupID}/posts/{postID}", middleware.AuthMiddleware(db)(http.HandlerFunc(groupPostHandler.DeleteGroupPost)))
 	mux.Handle("POST /groups/{groupID}/posts/{postID}/comments", middleware.AuthMiddleware(db)(http.HandlerFunc(groupPostHandler.CreateGroupPostComment)))
 	mux.Handle("GET /groups/{groupID}/posts/{postID}/comments", middleware.AuthMiddleware(db)(http.HandlerFunc(groupPostHandler.GetGroupPostComments)))
+	
+	// Group Events and Members routes
+	mux.Handle("GET /groups/{groupID}/events", middleware.AuthMiddleware(db)(http.HandlerFunc(groupHandler.GetGroupEvents)))
+	mux.Handle("GET /groups/{groupID}/members", middleware.AuthMiddleware(db)(http.HandlerFunc(groupHandler.GetGroupMembers)))
 	mux.Handle("POST /posts", middleware.AuthMiddleware(db)(http.HandlerFunc(postHandler.CreatePost)))
 	mux.Handle("GET /posts/{postId}", middleware.AuthMiddleware(db)(http.HandlerFunc(postHandler.GetPostByID)))
 	mux.Handle("GET /posts", middleware.AuthMiddleware(db)(http.HandlerFunc(postHandler.GetPosts)))

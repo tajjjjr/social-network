@@ -15,7 +15,7 @@ import { profileAPI } from "../../lib/api";
 import Image from 'next/image';
 
 
-const PostCreation = ({ user, onPostCreated }) => {
+const PostCreation = ({ user, onPostCreated, isGroupPost = false, groupId = null }) => {
   const [content, setContent] = useState("");
   const [privacy, setPrivacy] = useState("public");
   const [selectedImage, setSelectedImage] = useState(null);
@@ -120,7 +120,25 @@ const PostCreation = ({ user, onPostCreated }) => {
         formData.append("image", selectedImage);
       }
 
-      const result = await postAPI.createPost(formData);
+      let result;
+      if (isGroupPost && groupId) {
+        // Create group post
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/groups/${groupId}/posts`, {
+          method: 'POST',
+          credentials: 'include',
+          body: formData
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          result = { success: true, data };
+        } else {
+          const errorData = await response.json();
+          result = { success: false, error: errorData.message || 'Failed to create group post' };
+        }
+      } else {
+        result = await postAPI.createPost(formData);
+      }
 
       if (result.success) {
         // Reset form

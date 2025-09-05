@@ -184,9 +184,10 @@ const ProfileSidebar = ({ profile, connectionStatus = 'disconnected' }) => {
             userGroups.map(group => (
               <CommunityItem 
                 key={group.id}
-                icon={group.avatar ? fetchGroupImage(group.avatar) : null} 
+                icon={group.avatar && group.avatar.trim() !== '' ? fetchGroupImage(group.avatar) : null} 
                 name={group.title} 
                 memberCount={0}
+                onClick={() => router.push(`/groups/${group.id}`)}
               />
             ))
           ) : (

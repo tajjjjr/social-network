@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { api, fetchGroupImage } from '../../lib/api';
+import { useRouter } from 'next/navigation';
 
 export default function GroupBrowser({ user }) {
+  const router = useRouter();
   const [groups, setGroups] = useState([]);
   const [myGroups, setMyGroups] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -111,10 +113,12 @@ export default function GroupBrowser({ user }) {
   const GroupCard = ({ group, showJoinButton = true }) => {
     const isCreator = user && group.creator_id === user.id;
     return (
-      <div className="rounded-lg shadow p-4 mb-4" style={{ backgroundColor: 'var(--secondary-background)' }}>
+      <div className="rounded-lg shadow p-4 mb-4 cursor-pointer hover:opacity-90 transition-opacity" 
+           style={{ backgroundColor: 'var(--secondary-background)' }}
+           onClick={() => router.push(`/groups/${group.id}`)}>
         <div className="flex items-center gap-4 mb-2">
           <img
-            src={fetchGroupImage(group.avatar)}
+            src={group.avatar && group.avatar.trim() !== '' ? fetchGroupImage(group.avatar) : '/default-group-avatar.png'}
             alt={group.title + ' avatar'}
             className="w-12 h-12 rounded-full object-cover border"
             onError={e => { e.target.src = '/default-group-avatar.png'; }}
@@ -127,18 +131,39 @@ export default function GroupBrowser({ user }) {
             Created: {new Date(group.created_at).toLocaleDateString()}
             {isCreator && <span className="ml-2 text-xs" style={{ color: 'var(--primary-accent)' }}>(Creator)</span>}
           </span>
-          {showJoinButton && !isCreator && (
-            <button
-              onClick={() => joinGroup(group.id)}
-              className="px-4 py-2 rounded"
-              style={{
-                backgroundColor: 'var(--primary-accent)',
-                color: 'white'
-              }}
-            >
-              Join Group
-            </button>
-          )}
+          <div className="flex gap-2">
+            {showJoinButton && !isCreator && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  joinGroup(group.id);
+                }}
+                className="px-4 py-2 rounded"
+                style={{
+                  backgroundColor: 'var(--primary-accent)',
+                  color: 'white'
+                }}
+              >
+                Join Group
+              </button>
+            )}
+            {!showJoinButton && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/groups/${group.id}`);
+                }}
+                className="px-4 py-2 rounded border"
+                style={{
+                  backgroundColor: 'var(--secondary-background)',
+                  borderColor: 'var(--tertiary-text)',
+                  color: 'var(--primary-text)'
+                }}
+              >
+                View Group
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
