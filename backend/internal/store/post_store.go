@@ -81,7 +81,7 @@ func (s *PostStore) UpdatePost(postID int64, content, imagePath string) (*models
 	// Fetch and return the updated post with author information
 	row := s.DB.QueryRow(`
         SELECT p.id, p.user_id, p.content, p.image, p.privacy, p.created_at, p.updated_at,
-               u.first_name, u.last_name, u.nickname, u.avatar
+               u.firstname, u.lastname, u.nickname, u.avatar
         FROM Posts p
         JOIN Users u ON p.user_id = u.id
         WHERE p.id = ?
@@ -112,7 +112,7 @@ func (s *PostStore) GetPosts(userID int64) ([]*models.Post, error) {
 func (s *PostStore) GetPostsPaginated(userID int64, limit, offset int) ([]*models.Post, error) {
 	query := `
         SELECT p.id, p.user_id, p.content, p.image, p.privacy, p.created_at, p.updated_at,
-               u.first_name, u.last_name, u.nickname, u.avatar,
+               u.firstname, u.lastname, u.nickname, u.avatar,
                COALESCE(likes.count, 0) as likes_count,
                COALESCE(dislikes.count, 0) as dislikes_count,
                ur.reaction_type as user_reaction
@@ -198,7 +198,7 @@ func (s *PostStore) GetPostsCount(userID int64) (int, error) {
 func (s *PostStore) GetCommentsByPostID(postID, userID int64) ([]*models.Comment, error) {
 	rows, err := s.DB.Query(`
         SELECT c.id, c.post_id, c.user_id, c.content, c.image, c.created_at, c.updated_at,
-               u.first_name, u.last_name, u.nickname, u.avatar,
+               u.firstname, u.lastname, u.nickname, u.avatar,
                COALESCE(likes.count, 0) as likes_count,
                COALESCE(dislikes.count, 0) as dislikes_count,
                ur.reaction_type as user_reaction
@@ -277,22 +277,22 @@ func (s *PostStore) SearchUsers(query string, currentUserID int64) ([]*models.Us
 	searchQuery := "%" + query + "%"
 
 	rows, err := s.DB.Query(`
-		SELECT id, first_name, last_name, nickname, avatar
+		SELECT id, firstname, lastname, nickname, avatar
 		FROM Users
 		WHERE id != ? AND (
-			first_name LIKE ? OR
-			last_name LIKE ? OR
+			firstname LIKE ? OR
+			lastname LIKE ? OR
 			nickname LIKE ? OR
-			(first_name || ' ' || last_name) LIKE ?
+			(firstname || ' ' || lastname) LIKE ?
 		)
 		ORDER BY
 			CASE
 				WHEN nickname LIKE ? THEN 1
-				WHEN first_name LIKE ? THEN 2
-				WHEN last_name LIKE ? THEN 3
+				WHEN firstname LIKE ? THEN 2
+				WHEN lastname LIKE ? THEN 3
 				ELSE 4
 			END,
-			first_name, last_name
+			firstname, lastname
 		LIMIT 10
 	`, currentUserID, searchQuery, searchQuery, searchQuery, searchQuery, searchQuery, searchQuery, searchQuery)
 
@@ -332,7 +332,7 @@ func (s *PostStore) UpdateComment(commentID int64, content, imagePath string) (*
 	// Fetch and return the updated comment with author information
 	row := s.DB.QueryRow(`
         SELECT c.id, c.post_id, c.user_id, c.content, c.image, c.created_at, c.updated_at,
-               u.first_name, u.last_name, u.nickname, u.avatar
+               u.firstname, u.lastname, u.nickname, u.avatar
         FROM Comments c
         JOIN Users u ON c.user_id = u.id
         WHERE c.id = ?
@@ -366,7 +366,7 @@ func (s *PostStore) DeleteComment(commentID int64) error {
 func (s *PostStore) GetCommentByID(commentID int64) (*models.Comment, error) {
 	row := s.DB.QueryRow(`
         SELECT c.id, c.post_id, c.user_id, c.content, c.image, c.created_at, c.updated_at,
-               u.first_name, u.last_name, u.nickname, u.avatar
+               u.firstname, u.lastname, u.nickname, u.avatar
         FROM Comments c
         JOIN Users u ON c.user_id = u.id
         WHERE c.id = ?
