@@ -18,9 +18,8 @@ func NewGroupPostHandler(groupPostService service.GroupPostServiceInterface) *Gr
 }
 
 func (h *GroupPostHandler) CreateGroupPost(w http.ResponseWriter, r *http.Request) {
-	groupIDStr := r.PathValue("groupID")
-	groupID, err := strconv.ParseInt(groupIDStr, 10, 64)
-	if err != nil {
+	groupID := r.PathValue("groupID")
+	if groupID == "" {
 		utils.RespondJSON(w, http.StatusBadRequest, utils.Response{Message: "Invalid group ID"})
 		return
 	}
@@ -28,6 +27,17 @@ func (h *GroupPostHandler) CreateGroupPost(w http.ResponseWriter, r *http.Reques
 	userID, ok := r.Context().Value(utils.User_id).(int64)
 	if !ok {
 		utils.RespondJSON(w, http.StatusUnauthorized, utils.Response{Message: "Unauthorized"})
+		return
+	}
+
+	// Check if user is a member of the group
+	isMember, err := h.groupPostService.IsGroupMember(groupID, userID)
+	if err != nil {
+		utils.RespondJSON(w, http.StatusInternalServerError, utils.Response{Message: "Failed to check group membership"})
+		return
+	}
+	if !isMember {
+		utils.RespondJSON(w, http.StatusForbidden, utils.Response{Message: "You must be a group member to post"})
 		return
 	}
 
@@ -60,9 +70,8 @@ func (h *GroupPostHandler) CreateGroupPost(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *GroupPostHandler) GetGroupPosts(w http.ResponseWriter, r *http.Request) {
-	groupIDStr := r.PathValue("groupID")
-	groupID, err := strconv.ParseInt(groupIDStr, 10, 64)
-	if err != nil {
+	groupID := r.PathValue("groupID")
+	if groupID == "" {
 		utils.RespondJSON(w, http.StatusBadRequest, utils.Response{Message: "Invalid group ID"})
 		return
 	}
@@ -70,6 +79,17 @@ func (h *GroupPostHandler) GetGroupPosts(w http.ResponseWriter, r *http.Request)
 	userID, ok := r.Context().Value(utils.User_id).(int64)
 	if !ok {
 		utils.RespondJSON(w, http.StatusUnauthorized, utils.Response{Message: "Unauthorized"})
+		return
+	}
+
+	// Check if user is a member of the group
+	isMember, err := h.groupPostService.IsGroupMember(groupID, userID)
+	if err != nil {
+		utils.RespondJSON(w, http.StatusInternalServerError, utils.Response{Message: "Failed to check group membership"})
+		return
+	}
+	if !isMember {
+		utils.RespondJSON(w, http.StatusForbidden, utils.Response{Message: "You must be a group member to view posts"})
 		return
 	}
 
