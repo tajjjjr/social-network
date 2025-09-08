@@ -8,21 +8,26 @@ import (
 type GroupPostServiceInterface interface {
 	CreateGroupPost(post *models.GroupPost, imageData []byte, imageMimeType string) (int64, error)
 	GetGroupPostByID(postID int64) (*models.GroupPost, error)
-	GetGroupPosts(groupID int64, userID int64, limit, offset int) ([]*models.GroupPost, error)
+	GetGroupPosts(groupID string, userID int64, limit, offset int) ([]*models.GroupPost, error) // migrated groupID to string
 	UpdateGroupPost(postID, userID int64, content string, imageData []byte, imageMimeType string) (*models.GroupPost, error)
 	DeleteGroupPost(postID, userID int64) error
 	CreateGroupPostComment(comment *models.GroupPostComment, imageData []byte, imageMimeType string) (int64, error)
 	GetGroupPostComments(postID int64, userID int64) ([]*models.GroupPostComment, error)
 	UpdateGroupPostComment(commentID, userID int64, content string, imageData []byte, imageMimeType string) (*models.GroupPostComment, error)
 	DeleteGroupPostComment(commentID, userID int64) error
+	IsGroupMember(groupID string, userID int64) (bool, error) // migrated groupID to string
 }
 
 type GroupPostService struct {
-	groupPostStore store.GroupPostStore
+	groupPostStore   store.GroupPostStore
+	groupMemberStore store.GroupMemberStore
 }
 
-func NewGroupPostService(groupPostStore store.GroupPostStore) GroupPostServiceInterface {
-	return &GroupPostService{groupPostStore: groupPostStore}
+func NewGroupPostService(groupPostStore store.GroupPostStore, groupMemberStore store.GroupMemberStore) GroupPostServiceInterface {
+	return &GroupPostService{
+		groupPostStore:   groupPostStore,
+		groupMemberStore: groupMemberStore,
+	}
 }
 
 func (s *GroupPostService) CreateGroupPost(post *models.GroupPost, imageData []byte, imageMimeType string) (int64, error) {
@@ -42,7 +47,7 @@ func (s *GroupPostService) GetGroupPostByID(postID int64) (*models.GroupPost, er
 	return s.groupPostStore.GetGroupPostByID(postID)
 }
 
-func (s *GroupPostService) GetGroupPosts(groupID int64, userID int64, limit, offset int) ([]*models.GroupPost, error) {
+func (s *GroupPostService) GetGroupPosts(groupID string, userID int64, limit, offset int) ([]*models.GroupPost, error) {
 	return s.groupPostStore.GetGroupPosts(groupID, userID, limit, offset)
 }
 
@@ -77,4 +82,8 @@ func (s *GroupPostService) UpdateGroupPostComment(commentID, userID int64, conte
 
 func (s *GroupPostService) DeleteGroupPostComment(commentID, userID int64) error {
 	return s.groupPostStore.DeleteGroupPostComment(commentID, userID)
+}
+
+func (s *GroupPostService) IsGroupMember(groupID string, userID int64) (bool, error) {
+	return s.groupMemberStore.IsGroupMember(groupID, userID)
 }

@@ -9,7 +9,7 @@ import (
 
 type MockGroupPostStore struct {
 	CreateGroupPostFunc        func(post *models.GroupPost) (*models.GroupPost, error)
-	GetGroupPostsFunc          func(groupID int64, userID int64, limit, offset int) ([]*models.GroupPost, error)
+	GetGroupPostsFunc          func(groupID string, userID int64, limit, offset int) ([]*models.GroupPost, error) // migrated groupID to string
 	UpdateGroupPostFunc        func(postID, userID int64, content string, imageData []byte, imageMimeType string) (*models.GroupPost, error)
 	DeleteGroupPostFunc        func(postID, userID int64) error
 	CreateGroupPostCommentFunc func(comment *models.GroupPostComment) (*models.GroupPostComment, error)
@@ -28,7 +28,7 @@ func (m *MockGroupPostStore) GetGroupPostByID(postID int64) (*models.GroupPost, 
 	return &models.GroupPost{ID: postID}, nil
 }
 
-func (m *MockGroupPostStore) GetGroupPosts(groupID int64, userID int64, limit, offset int) ([]*models.GroupPost, error) {
+func (m *MockGroupPostStore) GetGroupPosts(groupID string, userID int64, limit, offset int) ([]*models.GroupPost, error) {
 	if m.GetGroupPostsFunc != nil {
 		return m.GetGroupPostsFunc(groupID, userID, limit, offset)
 	}
@@ -72,7 +72,7 @@ func (m *MockGroupPostStore) DeleteGroupPostComment(commentID, userID int64) err
 	return nil
 }
 
-func (m *MockGroupPostStore) CanUserDeleteGroupContent(groupID, userID int64) (bool, error) {
+func (m *MockGroupPostStore) CanUserDeleteGroupContent(groupID string, userID int64) (bool, error) {
 	return true, nil
 }
 
@@ -85,10 +85,10 @@ func TestCreateGroupPost(t *testing.T) {
 			},
 		}
 
-		service := NewGroupPostService(mockStore)
+		service := NewGroupPostService(mockStore, nil)
 
 		post := &models.GroupPost{
-			GroupID: 1,
+			GroupID: "1", // migrated to string
 			UserID:  1,
 			Content: "Test content",
 		}
@@ -110,10 +110,10 @@ func TestCreateGroupPost(t *testing.T) {
 			},
 		}
 
-		service := NewGroupPostService(mockStore)
+		service := NewGroupPostService(mockStore, nil)
 
 		post := &models.GroupPost{
-			GroupID: 1,
+			GroupID: "1", // migrated to string
 			UserID:  1,
 			Content: "Test content",
 		}
@@ -128,7 +128,7 @@ func TestCreateGroupPost(t *testing.T) {
 func TestGetGroupPosts(t *testing.T) {
 	t.Run("Successful get posts", func(t *testing.T) {
 		mockStore := &MockGroupPostStore{
-			GetGroupPostsFunc: func(groupID int64, userID int64, limit, offset int) ([]*models.GroupPost, error) {
+			GetGroupPostsFunc: func(groupID string, userID int64, limit, offset int) ([]*models.GroupPost, error) {
 				return []*models.GroupPost{
 					{ID: 1, GroupID: groupID, UserID: userID, Content: "Post 1"},
 					{ID: 2, GroupID: groupID, UserID: userID, Content: "Post 2"},
@@ -136,9 +136,9 @@ func TestGetGroupPosts(t *testing.T) {
 			},
 		}
 
-		service := NewGroupPostService(mockStore)
+		service := NewGroupPostService(mockStore, nil)
 
-		posts, err := service.GetGroupPosts(1, 1, 10, 0)
+		posts, err := service.GetGroupPosts("1", 1, 10, 0)
 		if err != nil {
 			t.Fatalf("GetGroupPosts failed: %v", err)
 		}
@@ -158,10 +158,10 @@ func TestCreateGroupPostComment(t *testing.T) {
 			},
 		}
 
-		service := NewGroupPostService(mockStore)
+		service := NewGroupPostService(mockStore, nil)
 
 		comment := &models.GroupPostComment{
-			GroupPostID: 1,
+			GroupPostID: "1", // migrated to string
 			UserID:      1,
 			Content:     "Test comment",
 		}

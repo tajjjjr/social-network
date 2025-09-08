@@ -4,7 +4,7 @@ import "time"
 
 type GroupPost struct {
 	ID           int64     `json:"id"`
-	GroupID      int64     `json:"group_id"`
+	GroupID      string    `json:"group_id"` // migrated to string (UUID)
 	UserID       int64     `json:"user_id"`
 	Content      string    `json:"content"`
 	Image        string    `json:"image,omitempty"`
@@ -14,13 +14,14 @@ type GroupPost struct {
 	UpdatedAt    time.Time `json:"updated_at"`
 	
 	// Additional fields for API responses
-	Author    *User `json:"author,omitempty"`
+	Author       *User  `json:"author,omitempty"`
 	UserReaction string `json:"user_reaction,omitempty"`
+	IsEdited     bool   `json:"is_edited,omitempty"`
 }
 
 type GroupPostComment struct {
 	ID              int64     `json:"id"`
-	GroupPostID     int64     `json:"group_post_id"`
+	GroupPostID     string    `json:"group_post_id"` // migrated to string (UUID)
 	UserID          int64     `json:"user_id"`
 	ParentCommentID *int64    `json:"parent_comment_id,omitempty"`
 	Content         string    `json:"content"`

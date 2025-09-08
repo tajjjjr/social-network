@@ -10,14 +10,14 @@ import (
 type GroupPostStore interface {
 	CreateGroupPost(post *models.GroupPost) (*models.GroupPost, error)
 	GetGroupPostByID(postID int64) (*models.GroupPost, error)
-	GetGroupPosts(groupID int64, userID int64, limit, offset int) ([]*models.GroupPost, error)
+	GetGroupPosts(groupID string, userID int64, limit, offset int) ([]*models.GroupPost, error) // migrated groupID to string
 	UpdateGroupPost(postID, userID int64, content string, imageData []byte, imageMimeType string) (*models.GroupPost, error)
 	DeleteGroupPost(postID, userID int64) error
 	CreateGroupPostComment(comment *models.GroupPostComment) (*models.GroupPostComment, error)
 	GetGroupPostComments(postID int64, userID int64) ([]*models.GroupPostComment, error)
 	UpdateGroupPostComment(commentID, userID int64, content string, imageData []byte, imageMimeType string) (*models.GroupPostComment, error)
 	DeleteGroupPostComment(commentID, userID int64) error
-	CanUserDeleteGroupContent(groupID, userID int64) (bool, error)
+	CanUserDeleteGroupContent(groupID string, userID int64) (bool, error) // migrated groupID to string
 }
 
 type groupPostStore struct {
@@ -65,18 +65,7 @@ func (s *groupPostStore) GetGroupPostByID(postID int64) (*models.GroupPost, erro
 	return &post, nil
 }
 
-func (s *groupPostStore) GetGroupPosts(groupID int64, userID int64, limit, offset int) ([]*models.GroupPost, error) {
-	if limit == 1 && offset == 0 {
-		// Special case for count query - return total count
-		var count int
-		err := s.db.QueryRow("SELECT COUNT(*) FROM Group_Posts WHERE group_id = ?", groupID).Scan(&count)
-		if err != nil {
-			return nil, err
-		}
-		// Return array with length equal to count for stats
-		result := make([]*models.GroupPost, count)
-		return result, nil
-	}
+func (s *groupPostStore) GetGroupPosts(groupID string, userID int64, limit, offset int) ([]*models.GroupPost, error) {
 
 	rows, err := s.db.Query(`
 		SELECT gp.id, gp.group_id, gp.user_id, gp.content, gp.image, gp.like_count, gp.dislike_count, 
@@ -117,6 +106,8 @@ func (s *groupPostStore) GetGroupPosts(groupID int64, userID int64, limit, offse
 			author.Avatar = &avatar.String
 		}
 		post.Author = &author
+		// Ensure user_id field is set for frontend compatibility
+		post.UserID = post.UserID
 		posts = append(posts, &post)
 	}
 	return posts, nil
@@ -258,20 +249,16 @@ func (s *groupPostStore) DeleteGroupPostComment(commentID, userID int64) error {
 	return err
 }
 
-func (s *groupPostStore) CanUserDeleteGroupContent(groupID, userID int64) (bool, error) {
-	// Check if user is group creator
-	var creatorID int64
-	err := s.db.QueryRow("SELECT creator_id FROM Groups WHERE id = ?", groupID).Scan(&creatorID)
-	if err != nil {
-		return false, err
-	}
-	if creatorID == userID {
-		return true, nil
-	}
-
-	// Check if user has admin permissions
+func (s *groupPostStore) CanUserDeleteGroupContent(groupID string, userID int64) (bool, error) {
+	// Check if user is group creator or admin
 	var count int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM Group_Permissions WHERE group_id = ? AND user_id = ? AND permission_type = 'admin'", groupID, userID).Scan(&count)
+	err := s.db.QueryRow(`
+		SELECT COUNT(*) FROM (
+			SELECT creator_id as user_id FROM Groups WHERE id = ? AND creator_id = ?
+			UNION
+			SELECT user_id FROM Group_Members WHERE group_id = ? AND user_id = ? AND role = 'admin' AND is_accepted = 1
+		)
+	`, groupID, userID, groupID, userID).Scan(&count)
 	if err != nil {
 		return false, err
 	}
@@ -280,7 +267,8 @@ func (s *groupPostStore) CanUserDeleteGroupContent(groupID, userID int64) (bool,
 
 func (s *groupPostStore) canUserDeletePost(postID, userID int64) (bool, error) {
 	// Check if user owns the post
-	var ownerID, groupID int64
+	var ownerID int64
+	var groupID string // migrated to string
 	err := s.db.QueryRow("SELECT user_id, group_id FROM Group_Posts WHERE id = ?", postID).Scan(&ownerID, &groupID)
 	if err != nil {
 		return false, err
@@ -296,7 +284,7 @@ func (s *groupPostStore) canUserDeletePost(postID, userID int64) (bool, error) {
 func (s *groupPostStore) canUserDeleteComment(commentID, userID int64) (bool, error) {
 	// Check if user owns the comment
 	var ownerID int64
-	var groupID int64
+	var groupID string // migrated to string
 	err := s.db.QueryRow(`
 		SELECT gpc.user_id, gp.group_id 
 		FROM Group_Post_Comments gpc 
