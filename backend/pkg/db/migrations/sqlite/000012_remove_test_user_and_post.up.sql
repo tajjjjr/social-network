@@ -27,11 +27,11 @@ DELETE FROM Sessions WHERE user_id = 999;
 -- Delete messages involving user 999
 DELETE FROM Messages WHERE sender_id = 999 OR receiver_id = 999;
 
--- Delete group memberships for user 999
-DELETE FROM Group_members WHERE user_id = 999;
+-- Delete group memberships for user 999 (unified table)
+DELETE FROM Groups WHERE type = 'member' AND user_id = 999;
 
--- Delete event responses by user 999
-DELETE FROM Event_responses WHERE user_id = 999;
+-- Delete event responses by user 999 (unified table)
+DELETE FROM Groups WHERE type = 'event_response' AND user_id = 999;
 
 -- Finally, delete user 999
 DELETE FROM Users WHERE id = 999;

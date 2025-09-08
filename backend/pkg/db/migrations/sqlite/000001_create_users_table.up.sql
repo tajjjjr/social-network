@@ -3,12 +3,12 @@ CREATE TABLE IF NOT EXISTS Users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
-    first_name TEXT,
-    last_name TEXT,
-    date_of_birth DATE,
+    firstname TEXT,
+    lastname TEXT,
+    dateofbirth DATE,
     avatar TEXT,
     nickname TEXT,
-    about_me TEXT,
+    aboutme TEXT,
     is_profile_public INTEGER DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
