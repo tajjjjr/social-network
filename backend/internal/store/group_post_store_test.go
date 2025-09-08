@@ -59,13 +59,12 @@ func setupGroupPostTestDB(t *testing.T) *sql.DB {
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);`
 
-	createGroupPermissionsTableSQL := `CREATE TABLE Group_Permissions (
+	createGroupMembersTableSQL := `CREATE TABLE Group_Members (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		group_id INTEGER NOT NULL,
 		user_id INTEGER NOT NULL,
-		permission_type TEXT NOT NULL,
-		granted_by INTEGER NOT NULL,
-		granted_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		role TEXT DEFAULT 'member',
+		is_accepted BOOLEAN DEFAULT 0
 	);`
 
 	tables := []string{
@@ -73,7 +72,7 @@ func setupGroupPostTestDB(t *testing.T) *sql.DB {
 		createGroupsTableSQL,
 		createGroupPostsTableSQL,
 		createGroupCommentsTableSQL,
-		createGroupPermissionsTableSQL,
+		createGroupMembersTableSQL,
 	}
 
 	for _, table := range tables {
@@ -216,7 +215,7 @@ func TestCanUserDeleteGroupContent(t *testing.T) {
 	}
 
 	// Test admin can delete
-	_, err = db.Exec("INSERT INTO Group_Permissions (group_id, user_id, permission_type, granted_by) VALUES (1, 2, 'admin', 1)")
+	_, err = db.Exec("INSERT INTO Group_Members (group_id, user_id, role, is_accepted) VALUES (1, 2, 'admin', 1)")
 	if err != nil {
 		t.Fatal(err)
 	}
