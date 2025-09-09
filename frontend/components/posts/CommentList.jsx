@@ -25,8 +25,8 @@ const CommentList = ({ postId, newComment, user }) => {
     if (author?.nickname) {
       return author.nickname;
     }
-    const firstName = author?.first_name || '';
-    const lastName = author?.last_name || '';
+    const firstName = author?.firstname || '';
+    const lastName = author?.lastname || '';
     const fullName = `${firstName} ${lastName}`.trim();
     return fullName || 'User';
   };

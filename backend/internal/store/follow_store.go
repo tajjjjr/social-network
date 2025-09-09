@@ -112,7 +112,7 @@ func (followstore *FollowStore) CreatePrivateFollowConnection(followerId, follow
 
 func (followstore *FollowStore) UserInfo(userID int64) (string, string, error) {
 	var firstName, lastName, avatar sql.NullString
-	query := "SELECT first_name, last_name, avatar FROM Users WHERE id = ?"
+	query := "SELECT firstname, lastname, avatar FROM Users WHERE id = ?"
 	err := followstore.DB.QueryRow(query, userID).Scan(&firstName, &lastName, &avatar)
 	if err != nil {
 		return "", "", err

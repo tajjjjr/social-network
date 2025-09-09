@@ -129,8 +129,8 @@ const ProfileSidebar = ({ profile, connectionStatus = 'disconnected' }) => {
         </div>
 
         <div className="mt-4 text-center text-sm">
-          <p>✨ {profile.about_me} ✨</p>
-          {/* TODO: Replace with profile status from backend */}
+          <p> {profile.aboutme} </p>
+          <p> {profile.is_profile_public} </p>
         </div>
 
         <button

@@ -80,17 +80,17 @@ const UserSearch = ({ selectedUsers, onUserSelect, onUserRemove }) => {
     if (user.nickname) {
       return user.nickname;
     }
-    if (user.first_name && user.last_name) {
-      return `${user.first_name} ${user.last_name}`;
+    if (user.firstname && user.lastname) {
+      return `${user.firstname} ${user.lastname}`;
     }
-    return user.first_name || user.last_name || 'Unknown User';
+    return user.firstname || user.lastname || 'Unknown User';
   };
 
   const getFullName = (user) => {
-    if (user.first_name && user.last_name) {
-      return `${user.first_name} ${user.last_name}`;
+    if (user.firstname && user.lastname) {
+      return `${user.firstname} ${user.lastname}`;
     }
-    return user.first_name || user.last_name || '';
+    return user.firstname || user.lastname || '';
   };
 
   return (

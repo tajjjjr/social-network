@@ -55,7 +55,7 @@ func (fr *FollowRequestStore) GetPendingFollowRequests(followeeID int64) ([]int6
 
 func (fr *FollowRequestStore) UserInfo(userID int64) (string, string, error) {
 	var firstName, lastName sql.NullString
-	query := "SELECT first_name, last_name FROM Users WHERE id = ?"
+	query := "SELECT firstname, lastname FROM Users WHERE id = ?"
 	err := fr.DB.QueryRow(query, userID).Scan(&firstName, &lastName)
 	if err != nil {
 		return "", "", err
@@ -113,7 +113,7 @@ func (fr *FollowRequestStore) GetPendingFollowRequest(userid int64) (models.Foll
 	var response models.FollowRequestUserResponse
 
 	query := `
-        SELECT f.id, f.follower_id, u.first_name, u.last_name, u.avatar, f.requested_at
+        SELECT f.id, f.follower_id, u.firstname, u.lastname, u.avatar, f.requested_at
         FROM Followers f
         JOIN Users u ON f.follower_id = u.id
         WHERE f.followee_id = ? AND f.status = 'pending'

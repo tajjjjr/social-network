@@ -129,7 +129,7 @@ const CommentForm = ({ postId, user, onCommentCreated }) => {
           {/* User Avatar */}
           <Image 
             src={profileAPI.fetchProfileImage(user?.avatar || '')}
-            alt={user?.nickname || `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'User'}
+            alt={user?.nickname || `${user?.firstname || ''} ${user?.lastname || ''}`.trim() || 'User'}
             width={40}
             height={40}
             className="w-10 h-10 rounded-full object-cover flex-shrink-0" 
