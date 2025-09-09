@@ -24,7 +24,7 @@ func (ps *ProfileStore) MyProfileDetails(userid int64) (models.ProfileDetails, e
 	var dateOfBirth sql.NullTime
 	var isProfilePublic int
 
-	query := `SELECT first_name, last_name, email, nickname, about_me, date_of_birth, is_profile_public, avatar 
+	query := `SELECT firstname, lastname, email, nickname, aboutme, dateofbirth, is_profile_public, avatar 
 			  FROM Users 
 			  WHERE id = ?`
 
@@ -100,7 +100,7 @@ func (ps *ProfileStore) GetFollowStatus(user_id, LoggedInUser int64) (string, er
 func (s *ProfileStore) GetPostsOfUser(id int64) ([]models.Post, error) {
 	query := `
 		SELECT p.id, p.user_id, p.content, p.image, p.privacy, p.created_at, p.updated_at,
-			   u.first_name, u.last_name, u.nickname, u.avatar
+			   u.firstname, u.lastname, u.nickname, u.avatar
 		FROM Posts p
 		JOIN Users u ON p.user_id = u.id
 		WHERE p.user_id = ?`
@@ -147,7 +147,7 @@ func (s *ProfileStore) GetPostsOfUser(id int64) ([]models.Post, error) {
 func (followstore *ProfileStore) GetUserFollowers(userid int64) (models.FollowListResponse, error) {
 	var followersList models.FollowListResponse
 	rows, err := followstore.DB.Query(`
-		SELECT u.id, u.first_name, u.last_name, u.avatar 
+		SELECT u.id, u.firstname, u.lastname, u.avatar 
 		FROM Users u 
 		INNER JOIN Followers f ON u.id = f.follower_id 
 		WHERE f.followee_id = ? AND f.status = 'accepted'`, userid)
@@ -187,7 +187,7 @@ func (followstore *ProfileStore) GetUserFollowers(userid int64) (models.FollowLi
 func (followstore *ProfileStore) GetUserFollowees(userid int64) (models.FollowListResponse, error) {
 	var followersList models.FollowListResponse
 	rows, err := followstore.DB.Query(`
-		SELECT u.id, u.first_name, u.last_name, u.avatar 
+		SELECT u.id, u.firstname, u.lastname, u.avatar 
 		FROM Users u 
 		INNER JOIN Followers f ON u.id = f.followee_id 
 		WHERE f.follower_id = ? AND f.status = 'accepted'`, userid)

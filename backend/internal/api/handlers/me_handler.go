@@ -34,7 +34,7 @@ func NewMeHandler(db *sql.DB) http.HandlerFunc {
 
 		var user models.User
 		errUser := db.QueryRow(
-			"SELECT id, email, avatar, first_name, last_name, date_of_birth, nickname, about_me, is_profile_public, created_at FROM Users WHERE id = ?",
+			"SELECT id, email, avatar, firstname, lastname, dateofbirth, nickname, aboutme, is_profile_public, created_at FROM Users WHERE id = ?",
 			userID,
 		).Scan(&user.ID, &user.Email, &user.Avatar, &user.FirstName, &user.LastName, &user.DateOfBirth, &user.Nickname, &user.AboutMe, &user.IsProfilePublic, &user.CreatedAt)
 		if errUser != nil {

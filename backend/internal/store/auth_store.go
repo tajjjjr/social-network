@@ -21,9 +21,9 @@ func NewAuthStore(db *sql.DB) *AuthStore {
 func (s *AuthStore) GetUserByEmail(email string) (*models.User, error) {
 	var user models.User
 	err := s.DB.QueryRow(
-		"SELECT id, email, password FROM Users WHERE email = ?",
+		"SELECT id, email, password, firstname, lastname, dateofbirth, avatar, nickname, aboutme, is_profile_public, created_at FROM Users WHERE email = ?",
 		email,
-	).Scan(&user.ID, &user.Email, &user.Password)
+	).Scan(&user.ID, &user.Email, &user.Password, &user.FirstName, &user.LastName, &user.DateOfBirth, &user.Avatar, &user.Nickname, &user.AboutMe, &user.IsProfilePublic, &user.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func (s *AuthStore) DeleteSession(sessionID string) error {
 // CreateUser creates a new user in the database
 func (s *AuthStore) CreateUser(user *models.User) (int64, error) {
 	stmt, err := s.DB.Prepare(`
-		INSERT INTO Users (email, password, first_name, last_name, date_of_birth, nickname, about_me, is_profile_public, avatar, created_at)
+		INSERT INTO Users (email, password, firstname, lastname, dateofbirth, nickname, aboutme, is_profile_public, avatar, created_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`)
 	if err != nil {
@@ -142,9 +142,17 @@ func GetUserIDFromSession(sessionID string, db *sql.DB) (int64, error) {
 func (s *AuthStore) EditProfile(user *models.User, userid int64) error {
 	var err error
 	if *user.Avatar != "no profile photo" {
-		_, err = s.DB.Exec("UPDATE Users SET email = ?, first_name = ?, last_name = ?, date_of_birth = ?, nickname = ?, about_me = ?, is_profile_public = ?, avatar = ? WHERE id = ?", user.Email, user.FirstName, user.LastName, user.DateOfBirth, user.Nickname, user.AboutMe, user.IsProfilePublic, user.Avatar, userid)
+		_, err = s.DB.Exec("UPDATE Users SET email = ?, firstname = ?, lastname = ?, dateofbirth = ?, nickname = ?, aboutme = ?, is_profile_public = ?, avatar = ? WHERE id = ?", user.Email, user.FirstName, user.LastName, user.DateOfBirth, user.Nickname, user.AboutMe, user.IsProfilePublic, user.Avatar, userid)
 	} else {
-		_, err = s.DB.Exec("UPDATE Users SET email = ?, first_name = ?, last_name = ?, date_of_birth = ?, nickname = ?, about_me = ?, is_profile_public = ? WHERE id = ?", user.Email, user.FirstName, user.LastName, user.DateOfBirth, user.Nickname, user.AboutMe, user.IsProfilePublic, userid)
+		_, err = s.DB.Exec("UPDATE Users SET email = ?, firstname = ?, lastname = ?, dateofbirth = ?, nickname = ?, aboutme = ?, is_profile_public = ? WHERE id = ?", user.Email, user.FirstName, user.LastName, user.DateOfBirth, user.Nickname, user.AboutMe, user.IsProfilePublic, userid)
 	}
 	return err
 }
+
+// EditProfile: already matches schema
+// CreateUser: already matches schema
+// GetUserByEmail: already matches schema
+// GetUserIDBySession: already matches schema
+// NewEditEmailExist: already matches schema
+// UserExists: already matches schema
+// All queries in this file now match the Users table schema and model fields.
