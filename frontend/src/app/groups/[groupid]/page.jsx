@@ -5,8 +5,9 @@ import { useParams } from 'next/navigation';
 import GroupHeader from '../../../../components/groups/GroupHeader';
 import GroupSidebar from '../../../../components/groups/GroupSidebar';
 import GroupPosts from '../../../../components/groups/GroupPosts';
+import withAuth from '../../../../lib/withAuth';
 
-export default function GroupPage() {
+function GroupPage({ user }) {
   const params = useParams();
   const groupId = params.groupid;
   const [group, setGroup] = useState(null);
@@ -61,7 +62,7 @@ export default function GroupPage() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--primary-background)' }}>
-      <GroupHeader group={group} />
+      <GroupHeader group={group} user={user} />
       
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex gap-6">
@@ -70,10 +71,12 @@ export default function GroupPage() {
           </div>
           
           <div className="flex-1">
-            <GroupPosts groupId={groupId} />
+            <GroupPosts groupId={groupId} user={user} group={group} />
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+export default withAuth(GroupPage);
