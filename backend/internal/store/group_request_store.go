@@ -32,7 +32,7 @@ func (s *groupRequestStore) CreateGroupRequest(request *models.GroupRequest) (*m
 		return nil, fmt.Errorf("error getting last insert ID: %w", err)
 	}
 
-	request.ID = id
+	request.ID = fmt.Sprintf("%d", id)
 	return request, nil
 }
 
@@ -68,16 +68,74 @@ func (s *groupRequestStore) UpdateGroupRequestStatus(requestID int64, status str
 	return nil
 }
 
-func (s *groupRequestStore) AddUserToGroup(groupID, userID int64) error {
-	stmt, err := s.db.Prepare("INSERT OR IGNORE INTO Group_Members (group_id, user_id, is_accepted) VALUES (?, ?, 1)")
+func (s *groupRequestStore) AddUserToGroupWithRole(groupPublicID string, userID int64, role string) error {
+	// Get internal group ID from public_id
+	var groupID int64
+	err := s.db.QueryRow("SELECT id FROM Groups WHERE public_id = ? AND type = 'group'", groupPublicID).Scan(&groupID)
+	if err != nil {
+		return fmt.Errorf("error finding group: %w", err)
+	}
+
+	// Define clear roles: admin (creator) and member (default)
+	if role != "admin" {
+		role = "member"
+	}
+
+	// Clear SQL statement for joining group with proper role assignment
+	stmt, err := s.db.Prepare(`
+		INSERT OR REPLACE INTO Group_Members (group_id, user_id, role, is_accepted) 
+		VALUES (?, ?, ?, 1)
+	`)
 	if err != nil {
 		return fmt.Errorf("error preparing statement: %w", err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(groupID, userID)
+	_, err = stmt.Exec(groupID, userID, role)
 	if err != nil {
 		return fmt.Errorf("error adding user to group: %w", err)
 	}
 	return nil
+}
+
+func (s *groupRequestStore) AddUserToGroup(groupPublicID string, userID int64) error {
+	return s.AddUserToGroupWithRole(groupPublicID, userID, "member")
+}
+
+func (s *groupRequestStore) IsUserMember(groupPublicID string, userID int64) (bool, error) {
+	// Get internal group ID from public_id
+	var groupID int64
+	err := s.db.QueryRow("SELECT id FROM Groups WHERE public_id = ? AND type = 'group'", groupPublicID).Scan(&groupID)
+	if err != nil {
+		return false, fmt.Errorf("error finding group: %w", err)
+	}
+
+	var count int
+	err = s.db.QueryRow(`
+		SELECT COUNT(*) FROM (
+			SELECT creator_id as user_id FROM Groups WHERE id = ? AND creator_id = ?
+			UNION
+			SELECT user_id FROM Group_Members WHERE group_id = ? AND user_id = ? AND is_accepted = 1
+		)
+	`, groupID, userID, groupID, userID).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (s *groupRequestStore) HasPendingRequest(groupPublicID string, userID int64) (bool, error) {
+	// Get internal group ID from public_id
+	var groupID int64
+	err := s.db.QueryRow("SELECT id FROM Groups WHERE public_id = ? AND type = 'group'", groupPublicID).Scan(&groupID)
+	if err != nil {
+		return false, fmt.Errorf("error finding group: %w", err)
+	}
+
+	var count int
+	err = s.db.QueryRow("SELECT COUNT(*) FROM group_requests WHERE group_id = ? AND user_id = ? AND status = 'pending'", groupID, userID).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

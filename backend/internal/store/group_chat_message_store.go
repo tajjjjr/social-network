@@ -32,11 +32,18 @@ func (s *groupChatMessageStore) CreateGroupChatMessage(message *models.GroupChat
 		return nil, fmt.Errorf("error getting last insert ID: %w", err)
 	}
 
-	message.ID = id
+	message.ID = fmt.Sprintf("%d", id)
 	return message, nil
 }
 
-func (s *groupChatMessageStore) GetGroupChatMessages(groupID int64, limit, offset int) ([]*models.GroupChatMessage, error) {
+func (s *groupChatMessageStore) GetGroupChatMessages(groupPublicID string, limit, offset int) ([]*models.GroupChatMessage, error) {
+	// First get the internal group ID from public_id
+	var groupID int64
+	err := s.db.QueryRow("SELECT id FROM Groups WHERE public_id = ? AND type = 'group'", groupPublicID).Scan(&groupID)
+	if err != nil {
+		return nil, fmt.Errorf("error finding group: %w", err)
+	}
+
 	rows, err := s.db.Query("SELECT id, group_id, sender_id, content, created_at FROM group_chat_messages WHERE group_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?", groupID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("error querying group chat messages: %w", err)
