@@ -59,14 +59,13 @@ func (h *GroupPostHandler) CreateGroupPost(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	id, err := h.groupPostService.CreateGroupPost(post, imageData, imageMimeType)
+	createdPost, err := h.groupPostService.CreateGroupPost(post, imageData, imageMimeType)
 	if err != nil {
 		utils.RespondJSON(w, http.StatusInternalServerError, utils.Response{Message: err.Error()})
 		return
 	}
 
-	post.ID = id
-	utils.RespondJSON(w, http.StatusCreated, post)
+	utils.RespondJSON(w, http.StatusCreated, createdPost)
 }
 
 func (h *GroupPostHandler) GetGroupPosts(w http.ResponseWriter, r *http.Request) {
@@ -119,8 +118,8 @@ func (h *GroupPostHandler) GetGroupPosts(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *GroupPostHandler) UpdateGroupPost(w http.ResponseWriter, r *http.Request) {
-	postIDStr := r.PathValue("postID")
-	if postIDStr == "" {
+	postPublicID := r.PathValue("postID")
+	if postPublicID == "" {
 		utils.RespondJSON(w, http.StatusBadRequest, utils.Response{Message: "Invalid post ID"})
 		return
 	}
@@ -149,12 +148,7 @@ func (h *GroupPostHandler) UpdateGroupPost(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	postID, err := strconv.ParseInt(postIDStr, 10, 64)
-	if err != nil {
-		utils.RespondJSON(w, http.StatusBadRequest, utils.Response{Message: "Invalid post ID format"})
-		return
-	}
-	updatedPost, err := h.groupPostService.UpdateGroupPost(postID, userID, content, imageData, imageMimeType)
+	updatedPost, err := h.groupPostService.UpdateGroupPost(postPublicID, userID, content, imageData, imageMimeType)
 	if err != nil {
 		utils.RespondJSON(w, http.StatusInternalServerError, utils.Response{Message: err.Error()})
 		return
@@ -164,15 +158,9 @@ func (h *GroupPostHandler) UpdateGroupPost(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *GroupPostHandler) DeleteGroupPost(w http.ResponseWriter, r *http.Request) {
-	postIDStr := r.PathValue("postID")
-	if postIDStr == "" {
+	postPublicID := r.PathValue("postID")
+	if postPublicID == "" {
 		utils.RespondJSON(w, http.StatusBadRequest, utils.Response{Message: "Invalid post ID"})
-		return
-	}
-
-	postID, err := strconv.ParseInt(postIDStr, 10, 64)
-	if err != nil {
-		utils.RespondJSON(w, http.StatusBadRequest, utils.Response{Message: "Invalid post ID format"})
 		return
 	}
 
@@ -182,7 +170,7 @@ func (h *GroupPostHandler) DeleteGroupPost(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err = h.groupPostService.DeleteGroupPost(postID, userID)
+	err := h.groupPostService.DeleteGroupPost(postPublicID, userID)
 	if err != nil {
 		utils.RespondJSON(w, http.StatusInternalServerError, utils.Response{Message: err.Error()})
 		return
@@ -192,8 +180,8 @@ func (h *GroupPostHandler) DeleteGroupPost(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *GroupPostHandler) CreateGroupPostComment(w http.ResponseWriter, r *http.Request) {
-	postIDStr := r.PathValue("postID")
-	if postIDStr == "" {
+	postPublicID := r.PathValue("postID")
+	if postPublicID == "" {
 		utils.RespondJSON(w, http.StatusBadRequest, utils.Response{Message: "Invalid post ID"})
 		return
 	}
@@ -211,7 +199,7 @@ func (h *GroupPostHandler) CreateGroupPostComment(w http.ResponseWriter, r *http
 	}
 
 	comment := &models.GroupPostComment{
-		GroupPostID: postIDStr, // fix: use string postID
+		GroupPostID: postPublicID,
 		UserID:      userID,
 		Content:     r.FormValue("content"),
 	}
@@ -222,26 +210,19 @@ func (h *GroupPostHandler) CreateGroupPostComment(w http.ResponseWriter, r *http
 		return
 	}
 
-	id, err := h.groupPostService.CreateGroupPostComment(comment, imageData, imageMimeType)
+	comment, err = h.groupPostService.CreateGroupPostComment(comment, imageData, imageMimeType)
 	if err != nil {
 		utils.RespondJSON(w, http.StatusInternalServerError, utils.Response{Message: err.Error()})
 		return
 	}
 
-	comment.ID = id
 	utils.RespondJSON(w, http.StatusCreated, comment)
 }
 
 func (h *GroupPostHandler) GetGroupPostComments(w http.ResponseWriter, r *http.Request) {
-	postIDStr := r.PathValue("postID")
-	if postIDStr == "" {
+	postPublicID := r.PathValue("postID")
+	if postPublicID == "" {
 		utils.RespondJSON(w, http.StatusBadRequest, utils.Response{Message: "Invalid post ID"})
-		return
-	}
-
-	postID, err := strconv.ParseInt(postIDStr, 10, 64)
-	if err != nil {
-		utils.RespondJSON(w, http.StatusBadRequest, utils.Response{Message: "Invalid post ID format"})
 		return
 	}
 
@@ -251,7 +232,7 @@ func (h *GroupPostHandler) GetGroupPostComments(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	comments, err := h.groupPostService.GetGroupPostComments(postID, userID)
+	comments, err := h.groupPostService.GetGroupPostComments(postPublicID, userID)
 	if err != nil {
 		utils.RespondJSON(w, http.StatusInternalServerError, utils.Response{Message: "Internal server error"})
 		return
