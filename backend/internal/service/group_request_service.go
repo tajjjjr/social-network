@@ -16,8 +16,8 @@ func NewGroupRequestService(groupRequestStore store.GroupRequestStore, groupServ
 	return &groupRequestService{groupRequestStore: groupRequestStore, groupService: groupService}
 }
 
-func (s *groupRequestService) SendJoinRequest(groupID, userID int64) (*models.GroupRequest, error) {
-	group, err := s.groupService.GetGroupByID(int64(groupID))
+func (s *groupRequestService) SendJoinRequest(groupPublicID string, userID int64) (*models.GroupRequest, error) {
+	group, err := s.groupService.GetGroupByID(groupPublicID)
 	if err != nil {
 		return nil, fmt.Errorf("group not found: %w", err)
 	}
@@ -28,7 +28,7 @@ func (s *groupRequestService) SendJoinRequest(groupID, userID int64) (*models.Gr
 
 	// For public groups, automatically approve and add user as member
 	request := &models.GroupRequest{
-		GroupID: int64(groupID),
+		GroupID: groupPublicID,
 		UserID:  int64(userID),
 		Status:  "approved",
 	}
@@ -39,7 +39,7 @@ func (s *groupRequestService) SendJoinRequest(groupID, userID int64) (*models.Gr
 	}
 
 	// Add user to Group_Members table
-	err = s.groupRequestStore.AddUserToGroup(groupID, userID)
+	err = s.groupRequestStore.AddUserToGroup(groupPublicID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to add user to group: %w", err)
 	}

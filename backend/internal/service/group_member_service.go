@@ -6,8 +6,8 @@ import (
 )
 
 type GroupMemberServiceInterface interface {
-	GetGroupMembers(groupID int64) ([]*models.User, error)
-	AddGroupMember(groupID, userID int64, role string) (*models.GroupMember, error)
+	GetGroupMembers(groupID string) ([]*models.User, error)
+	AddGroupMember(groupID string, userID int64, role string) (*models.GroupMember, error)
 }
 
 type GroupMemberService struct {
@@ -18,10 +18,10 @@ func NewGroupMemberService(groupMemberStore store.GroupMemberStore) GroupMemberS
 	return &GroupMemberService{groupMemberStore: groupMemberStore}
 }
 
-func (s *GroupMemberService) GetGroupMembers(groupID int64) ([]*models.User, error) {
+func (s *GroupMemberService) GetGroupMembers(groupID string) ([]*models.User, error) {
 	return s.groupMemberStore.GetGroupMembers(groupID)
 }
 
-func (s *GroupMemberService) AddGroupMember(groupID, userID int64, role string) (*models.GroupMember, error) {
+func (s *GroupMemberService) AddGroupMember(groupID string, userID int64, role string) (*models.GroupMember, error) {
 	return s.groupMemberStore.AddGroupMember(groupID, userID, role)
 }
