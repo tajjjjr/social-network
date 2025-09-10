@@ -55,10 +55,13 @@ export default function GroupCreation({ onGroupCreated }) {
         // Collapse the form after successful creation
         setIsExpanded(false);
       } else {
-        console.error('Failed to create group');
+        const errorText = await response.text();
+        console.error('Failed to create group:', response.status, errorText);
+        alert(`Failed to create group: ${response.status} - ${errorText}`);
       }
     } catch (error) {
       console.error('Error creating group:', error);
+      alert(`Network error creating group: ${error.message}`);
     } finally {
       setLoading(false);
     }

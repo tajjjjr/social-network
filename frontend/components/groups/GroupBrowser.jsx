@@ -115,7 +115,7 @@ export default function GroupBrowser({ user }) {
     return (
       <div className="rounded-lg shadow p-4 mb-4 cursor-pointer hover:opacity-90 transition-opacity" 
            style={{ backgroundColor: 'var(--secondary-background)' }}
-           onClick={() => router.push(`/groups/${group.id}`)}>
+           onClick={() => router.push(`/groups/${group.public_id}`)}>
         <div className="flex items-center gap-4 mb-2">
           <img
             src={group.avatar && group.avatar.trim() !== '' ? fetchGroupImage(group.avatar) : '/default-group-avatar.png'}
@@ -136,7 +136,7 @@ export default function GroupBrowser({ user }) {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  joinGroup(group.id);
+                  joinGroup(group.public_id);
                 }}
                 className="px-4 py-2 rounded"
                 style={{
@@ -151,7 +151,7 @@ export default function GroupBrowser({ user }) {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  router.push(`/groups/${group.id}`);
+                  router.push(`/groups/${group.public_id}`);
                 }}
                 className="px-4 py-2 rounded border"
                 style={{
@@ -239,7 +239,7 @@ export default function GroupBrowser({ user }) {
         <div className="mb-6">
           <h2 className="text-xl font-semibold mb-4">Search Results</h2>
           {searchResults.map(group => (
-            <GroupCard key={group.id} group={group} showJoinButton={true} user={user} joinGroup={joinGroup} />
+            <GroupCard key={group.public_id} group={group} showJoinButton={true} user={user} joinGroup={joinGroup} />
           ))}
         </div>
       )}
@@ -252,7 +252,7 @@ export default function GroupBrowser({ user }) {
             <p style={{ color: 'var(--secondary-text)' }}>No public groups found.</p>
           ) : (
             groups.map(group => (
-              <GroupCard key={group.id} group={group} showJoinButton={true} user={user} joinGroup={joinGroup} />
+              <GroupCard key={group.public_id} group={group} showJoinButton={true} user={user} joinGroup={joinGroup} />
             ))
           )}
         </div>
@@ -266,7 +266,7 @@ export default function GroupBrowser({ user }) {
             <p style={{ color: 'var(--secondary-text)' }}>You haven&apos;t joined any groups yet.</p>
           ) : (
             myGroups.map(group => (
-              <GroupCard key={group.id} group={group} showJoinButton={false} user={user} joinGroup={joinGroup} />
+              <GroupCard key={group.public_id} group={group} showJoinButton={false} user={user} joinGroup={joinGroup} />
             ))
           )}
         </div>
