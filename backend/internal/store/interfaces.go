@@ -23,26 +23,26 @@ type PostStoreInterface interface {
 
 type GroupStore interface {
 	CreateGroup(group *models.Group) (*models.Group, error)
-	GetGroupByID(groupID int64) (*models.Group, error)
+	GetGroupByID(groupID string) (*models.Group, error)
 	SearchPublicGroups(query string) ([]*models.Group, error)
 	GetAllPublicGroups() ([]*models.Group, error)
 	GetUserGroups(userID int64) ([]*models.Group, error)
+	JoinGroup(groupID string, userID int64) error
+	LeaveGroup(groupID string, userID int64) error
+	IsGroupMember(groupID string, userID int64) (bool, error)
 }
 
 type GroupRequestStore interface {
 	CreateGroupRequest(request *models.GroupRequest) (*models.GroupRequest, error)
 	GetGroupRequestByID(requestID int64) (*models.GroupRequest, error)
 	UpdateGroupRequestStatus(requestID int64, status string) error
-	AddUserToGroup(groupID, userID int64) error
+	AddUserToGroupWithRole(groupPublicID string, userID int64, role string) error
+	AddUserToGroup(groupPublicID string, userID int64) error
+	IsUserMember(groupPublicID string, userID int64) (bool, error)
+	HasPendingRequest(groupPublicID string, userID int64) (bool, error)
 }
 
 type GroupChatMessageStore interface {
 	CreateGroupChatMessage(message *models.GroupChatMessage) (*models.GroupChatMessage, error)
-	GetGroupChatMessages(groupID int64, limit, offset int) ([]*models.GroupChatMessage, error)
-}
-
-type GroupMemberStoreInterface interface {
-	IsGroupMember(groupID, userID int64) (bool, error)
-	AddGroupMember(groupID, userID int64, role string) (*models.GroupMember, error)
-	RemoveGroupMember(groupID, userID int64) error
+	GetGroupChatMessages(groupPublicID string, limit, offset int) ([]*models.GroupChatMessage, error)
 }

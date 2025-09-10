@@ -17,13 +17,13 @@ func NewGroupChatMessageService(groupChatMessageStore store.GroupChatMessageStor
 	return &groupChatMessageService{groupChatMessageStore: groupChatMessageStore, groupService: groupService, groupMemberStore: groupMemberStore}
 }
 
-func (s *groupChatMessageService) SendGroupChatMessage(groupID, senderID int64, content string) (*models.GroupChatMessage, error) {
-	_, err := s.groupService.GetGroupByID(int64(groupID))
+func (s *groupChatMessageService) SendGroupChatMessage(publicID string, senderID int64, content string) (*models.GroupChatMessage, error) {
+	group, err := s.groupService.GetGroupByID(publicID)
 	if err != nil {
 		return nil, fmt.Errorf("group not found: %w", err)
 	}
 
-	isMember, err := s.groupMemberStore.IsGroupMember(int64(groupID), int64(senderID))
+	isMember, err := s.groupMemberStore.IsGroupMember(publicID, senderID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check group membership: %w", err)
 	}
@@ -32,7 +32,7 @@ func (s *groupChatMessageService) SendGroupChatMessage(groupID, senderID int64, 
 	}
 
 	message := &models.GroupChatMessage{
-		GroupID:  groupID,
+		GroupID:  group.ID,
 		SenderID: senderID,
 		Content:  content,
 	}
@@ -45,13 +45,8 @@ func (s *groupChatMessageService) SendGroupChatMessage(groupID, senderID int64, 
 	return createdMessage, nil
 }
 
-func (s *groupChatMessageService) GetGroupChatMessages(groupID int64, userID int64, limit, offset int) ([]*models.GroupChatMessage, error) {
-	_, err := s.groupService.GetGroupByID(int64(groupID))
-	if err != nil {
-		return nil, fmt.Errorf("group not found: %w", err)
-	}
-
-	isMember, err := s.groupMemberStore.IsGroupMember(groupID, userID)
+func (s *groupChatMessageService) GetGroupChatMessages(publicID string, userID int64, limit, offset int) ([]*models.GroupChatMessage, error) {
+	isMember, err := s.groupMemberStore.IsGroupMember(publicID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check group membership: %w", err)
 	}
@@ -59,7 +54,7 @@ func (s *groupChatMessageService) GetGroupChatMessages(groupID int64, userID int
 		return nil, fmt.Errorf("user is not a member of this group")
 	}
 
-	messages, err := s.groupChatMessageStore.GetGroupChatMessages(groupID, limit, offset)
+	messages, err := s.groupChatMessageStore.GetGroupChatMessages(publicID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get group chat messages: %w", err)
 	}

@@ -9,11 +9,12 @@ import (
 
 type MockGroupPostStore struct {
 	CreateGroupPostFunc        func(post *models.GroupPost) (*models.GroupPost, error)
-	GetGroupPostsFunc          func(groupID string, userID int64, limit, offset int) ([]*models.GroupPost, error) // migrated groupID to string
-	UpdateGroupPostFunc        func(postID, userID int64, content string, imageData []byte, imageMimeType string) (*models.GroupPost, error)
-	DeleteGroupPostFunc        func(postID, userID int64) error
+	GetGroupPostsFunc          func(groupID string, userID int64, limit, offset int) ([]*models.GroupPost, error)
+	UpdateGroupPostFunc        func(postPublicID string, userID int64, content string, imageData []byte, imageMimeType string) (*models.GroupPost, error)
+	DeleteGroupPostFunc        func(postPublicID string, userID int64) error
 	CreateGroupPostCommentFunc func(comment *models.GroupPostComment) (*models.GroupPostComment, error)
-	GetGroupPostCommentsFunc   func(postID int64, userID int64) ([]*models.GroupPostComment, error)
+	GetGroupPostCommentsFunc   func(postPublicID string, userID int64) ([]*models.GroupPostComment, error)
+	IsGroupMemberFunc          func(groupID string, userID int64) (bool, error)
 }
 
 func (m *MockGroupPostStore) CreateGroupPost(post *models.GroupPost) (*models.GroupPost, error) {
@@ -24,8 +25,8 @@ func (m *MockGroupPostStore) CreateGroupPost(post *models.GroupPost) (*models.Gr
 	return post, nil
 }
 
-func (m *MockGroupPostStore) GetGroupPostByID(postID int64) (*models.GroupPost, error) {
-	return &models.GroupPost{ID: postID}, nil
+func (m *MockGroupPostStore) GetGroupPostByID(postPublicID string) (*models.GroupPost, error) {
+	return &models.GroupPost{PublicID: postPublicID}, nil
 }
 
 func (m *MockGroupPostStore) GetGroupPosts(groupID string, userID int64, limit, offset int) ([]*models.GroupPost, error) {
@@ -35,16 +36,16 @@ func (m *MockGroupPostStore) GetGroupPosts(groupID string, userID int64, limit, 
 	return []*models.GroupPost{}, nil
 }
 
-func (m *MockGroupPostStore) UpdateGroupPost(postID, userID int64, content string, imageData []byte, imageMimeType string) (*models.GroupPost, error) {
+func (m *MockGroupPostStore) UpdateGroupPost(postPublicID string, userID int64, content string, imageData []byte, imageMimeType string) (*models.GroupPost, error) {
 	if m.UpdateGroupPostFunc != nil {
-		return m.UpdateGroupPostFunc(postID, userID, content, imageData, imageMimeType)
+		return m.UpdateGroupPostFunc(postPublicID, userID, content, imageData, imageMimeType)
 	}
-	return &models.GroupPost{ID: postID, Content: content}, nil
+	return &models.GroupPost{PublicID: postPublicID, Content: content}, nil
 }
 
-func (m *MockGroupPostStore) DeleteGroupPost(postID, userID int64) error {
+func (m *MockGroupPostStore) DeleteGroupPost(postPublicID string, userID int64) error {
 	if m.DeleteGroupPostFunc != nil {
-		return m.DeleteGroupPostFunc(postID, userID)
+		return m.DeleteGroupPostFunc(postPublicID, userID)
 	}
 	return nil
 }
@@ -57,23 +58,69 @@ func (m *MockGroupPostStore) CreateGroupPostComment(comment *models.GroupPostCom
 	return comment, nil
 }
 
-func (m *MockGroupPostStore) GetGroupPostComments(postID int64, userID int64) ([]*models.GroupPostComment, error) {
+func (m *MockGroupPostStore) GetGroupPostComments(postPublicID string, userID int64) ([]*models.GroupPostComment, error) {
 	if m.GetGroupPostCommentsFunc != nil {
-		return m.GetGroupPostCommentsFunc(postID, userID)
+		return m.GetGroupPostCommentsFunc(postPublicID, userID)
 	}
 	return []*models.GroupPostComment{}, nil
 }
 
-func (m *MockGroupPostStore) UpdateGroupPostComment(commentID, userID int64, content string, imageData []byte, imageMimeType string) (*models.GroupPostComment, error) {
-	return &models.GroupPostComment{ID: commentID, Content: content}, nil
+func (m *MockGroupPostStore) UpdateGroupPostComment(commentPublicID string, userID int64, content string, imageData []byte, imageMimeType string) (*models.GroupPostComment, error) {
+	return &models.GroupPostComment{PublicID: commentPublicID, Content: content}, nil
 }
 
-func (m *MockGroupPostStore) DeleteGroupPostComment(commentID, userID int64) error {
+func (m *MockGroupPostStore) DeleteGroupPostComment(commentPublicID string, userID int64) error {
 	return nil
 }
 
 func (m *MockGroupPostStore) CanUserDeleteGroupContent(groupID string, userID int64) (bool, error) {
 	return true, nil
+}
+
+func (m *MockGroupPostStore) IsGroupMember(groupID string, userID int64) (bool, error) {
+	if m.IsGroupMemberFunc != nil {
+		return m.IsGroupMemberFunc(groupID, userID)
+	}
+	return true, nil
+}
+
+type MockGroupStore struct {
+	GetGroupByIDFunc func(publicID string) (*models.Group, error)
+}
+
+func (m *MockGroupStore) CreateGroup(group *models.Group) (*models.Group, error) {
+	return group, nil
+}
+
+func (m *MockGroupStore) GetGroupByID(publicID string) (*models.Group, error) {
+	if m.GetGroupByIDFunc != nil {
+		return m.GetGroupByIDFunc(publicID)
+	}
+	return &models.Group{ID: "1", PublicID: publicID}, nil
+}
+
+func (m *MockGroupStore) SearchPublicGroups(query string) ([]*models.Group, error) {
+	return []*models.Group{}, nil
+}
+
+func (m *MockGroupStore) GetAllPublicGroups() ([]*models.Group, error) {
+	return []*models.Group{}, nil
+}
+
+func (m *MockGroupStore) JoinGroup(publicID string, userID int64) error {
+	return nil
+}
+
+func (m *MockGroupStore) LeaveGroup(publicID string, userID int64) error {
+	return nil
+}
+
+func (m *MockGroupStore) IsGroupMember(publicID string, userID int64) (bool, error) {
+	return true, nil
+}
+
+func (m *MockGroupStore) GetUserGroups(userID int64) ([]*models.Group, error) {
+	return []*models.Group{}, nil
 }
 
 func TestCreateGroupPost(t *testing.T) {
@@ -84,22 +131,22 @@ func TestCreateGroupPost(t *testing.T) {
 				return post, nil
 			},
 		}
-
-		service := NewGroupPostService(mockStore, nil)
+		mockGroupStore := &MockGroupStore{}
+		service := NewGroupPostService(mockStore, nil, mockGroupStore)
 
 		post := &models.GroupPost{
-			GroupID: "1", // migrated to string
+			GroupID: "1",
 			UserID:  1,
 			Content: "Test content",
 		}
 
-		id, err := service.CreateGroupPost(post, nil, "")
+		createdPost, err := service.CreateGroupPost(post, nil, "")
 		if err != nil {
 			t.Fatalf("CreateGroupPost failed: %v", err)
 		}
 
-		if id != 1 {
-			t.Errorf("Expected post ID 1, got %d", id)
+		if createdPost.ID != 1 {
+			t.Errorf("Expected post ID 1, got %d", createdPost.ID)
 		}
 	})
 
@@ -109,11 +156,11 @@ func TestCreateGroupPost(t *testing.T) {
 				return nil, errors.New("store error")
 			},
 		}
-
-		service := NewGroupPostService(mockStore, nil)
+		mockGroupStore := &MockGroupStore{}
+		service := NewGroupPostService(mockStore, nil, mockGroupStore)
 
 		post := &models.GroupPost{
-			GroupID: "1", // migrated to string
+			GroupID: "1",
 			UserID:  1,
 			Content: "Test content",
 		}
@@ -130,13 +177,17 @@ func TestGetGroupPosts(t *testing.T) {
 		mockStore := &MockGroupPostStore{
 			GetGroupPostsFunc: func(groupID string, userID int64, limit, offset int) ([]*models.GroupPost, error) {
 				return []*models.GroupPost{
-					{ID: 1, GroupID: groupID, UserID: userID, Content: "Post 1"},
-					{ID: 2, GroupID: groupID, UserID: userID, Content: "Post 2"},
+					{ID: 1, GroupID: "1", UserID: userID, Content: "Post 1"},
+					{ID: 2, GroupID: "1", UserID: userID, Content: "Post 2"},
 				}, nil
 			},
 		}
-
-		service := NewGroupPostService(mockStore, nil)
+		mockGroupStore := &MockGroupStore{
+			GetGroupByIDFunc: func(publicID string) (*models.Group, error) {
+				return &models.Group{ID: "1", PublicID: publicID}, nil
+			},
+		}
+		service := NewGroupPostService(mockStore, nil, mockGroupStore)
 
 		posts, err := service.GetGroupPosts("1", 1, 10, 0)
 		if err != nil {
@@ -157,22 +208,22 @@ func TestCreateGroupPostComment(t *testing.T) {
 				return comment, nil
 			},
 		}
-
-		service := NewGroupPostService(mockStore, nil)
+		mockGroupStore := &MockGroupStore{}
+		service := NewGroupPostService(mockStore, nil, mockGroupStore)
 
 		comment := &models.GroupPostComment{
-			GroupPostID: "1", // migrated to string
+			GroupPostID: "1",
 			UserID:      1,
 			Content:     "Test comment",
 		}
 
-		id, err := service.CreateGroupPostComment(comment, nil, "")
+		createdComment, err := service.CreateGroupPostComment(comment, nil, "")
 		if err != nil {
 			t.Fatalf("CreateGroupPostComment failed: %v", err)
 		}
 
-		if id != 1 {
-			t.Errorf("Expected comment ID 1, got %d", id)
+		if createdComment.ID != 1 {
+			t.Errorf("Expected comment ID 1, got %d", createdComment.ID)
 		}
 	})
 }

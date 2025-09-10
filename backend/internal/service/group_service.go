@@ -17,8 +17,8 @@ func (s *groupService) CreateGroup(group *models.Group) (*models.Group, error) {
 	return s.groupStore.CreateGroup(group)
 }
 
-func (s *groupService) GetGroupByID(groupID int64) (*models.Group, error) {
-	return s.groupStore.GetGroupByID(groupID)
+func (s *groupService) GetGroupByID(publicID string) (*models.Group, error) {
+	return s.groupStore.GetGroupByID(publicID)
 }
 
 func (s *groupService) SearchPublicGroups(query string) ([]*models.Group, error) {
@@ -31,4 +31,16 @@ func (s *groupService) GetAllPublicGroups() ([]*models.Group, error) {
 
 func (s *groupService) GetUserGroups(userID int64) ([]*models.Group, error) {
 	return s.groupStore.GetUserGroups(userID)
+}
+
+func (s *groupService) JoinGroup(publicID string, userID int64) error {
+	return s.groupStore.JoinGroup(publicID, userID)
+}
+
+func (s *groupService) LeaveGroup(publicID string, userID int64) error {
+	return s.groupStore.LeaveGroup(publicID, userID)
+}
+
+func (s *groupService) IsGroupMember(publicID string, userID int64) (bool, error) {
+	return s.groupStore.IsGroupMember(publicID, userID)
 }
