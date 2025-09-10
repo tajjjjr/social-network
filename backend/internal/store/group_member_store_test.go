@@ -25,23 +25,25 @@ func setupGroupMemberTestDB(t *testing.T) *sql.DB {
 	);`
 
 	createGroupsTableSQL := `CREATE TABLE Groups (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		title TEXT NOT NULL,
-		description TEXT,
-		creator_id INTEGER NOT NULL,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		id TEXT PRIMARY KEY,
+		public_id TEXT UNIQUE,
+		type TEXT NOT NULL CHECK (type IN ('group', 'member', 'request', 'event', 'post', 'comment')),
+		group_id TEXT,
+		user_id INTEGER,
+		title TEXT,
+		content TEXT,
+		role TEXT DEFAULT 'member' CHECK (role IN ('admin', 'member')),
+		status TEXT DEFAULT 'active' CHECK (status IN ('active', 'pending', 'rejected', 'going', 'not_going')),
+		privacy TEXT DEFAULT 'public' CHECK (privacy IN ('public', 'private')),
+		image TEXT,
+		data TEXT,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
+		FOREIGN KEY (group_id) REFERENCES Groups(id) ON DELETE CASCADE
 	);`
 
-	createGroupMembersTableSQL := `CREATE TABLE Group_Members (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		group_id INTEGER NOT NULL,
-		user_id INTEGER NOT NULL,
-		role TEXT DEFAULT 'member',
-		is_accepted INTEGER DEFAULT 0,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);`
-
-	tables := []string{createUsersTableSQL, createGroupsTableSQL, createGroupMembersTableSQL}
+	tables := []string{createUsersTableSQL, createGroupsTableSQL}
 
 	for _, table := range tables {
 		if _, err := db.Exec(table); err != nil {
@@ -55,12 +57,15 @@ func setupGroupMemberTestDB(t *testing.T) *sql.DB {
 		t.Fatal(err)
 	}
 
-	_, err = db.Exec("INSERT INTO Groups (id, title, description, creator_id) VALUES (1, 'Test Group', 'Test Description', 1)")
+	_, err = db.Exec("INSERT INTO Groups (id, public_id, type, user_id, title, content, role, privacy) VALUES ('1', 'group-1', 'group', 1, 'Test Group', 'Test Description', 'admin', 'public')")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = db.Exec("INSERT INTO Group_Members (group_id, user_id, role, is_accepted) VALUES (1, 1, 'admin', 1)")
+	_, err = db.Exec("INSERT INTO Groups (id, type, group_id, user_id, role, status) VALUES ('member-1', 'member', '1', 1, 'admin', 'active')")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +79,7 @@ func TestGetGroupMembers(t *testing.T) {
 
 	store := NewGroupMemberStore(db)
 
-	members, err := store.GetGroupMembers(1)
+	members, err := store.GetGroupMembers("group-1")
 	if err != nil {
 		t.Fatalf("GetGroupMembers failed: %v", err)
 	}
@@ -94,7 +99,7 @@ func TestIsGroupMember(t *testing.T) {
 
 	store := NewGroupMemberStore(db)
 
-	isMember, err := store.IsGroupMember(1, 1)
+	isMember, err := store.IsGroupMember("group-1", 1)
 	if err != nil {
 		t.Fatalf("IsGroupMember failed: %v", err)
 	}
@@ -103,7 +108,7 @@ func TestIsGroupMember(t *testing.T) {
 		t.Error("Expected user to be a group member")
 	}
 
-	isMember, err = store.IsGroupMember(1, 999)
+	isMember, err = store.IsGroupMember("group-1", 999)
 	if err != nil {
 		t.Fatalf("IsGroupMember failed: %v", err)
 	}
@@ -125,7 +130,7 @@ func TestAddGroupMember(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	member, err := store.AddGroupMember(1, 2, "member")
+	member, err := store.AddGroupMember("group-1", 2, "member")
 	if err != nil {
 		t.Fatalf("AddGroupMember failed: %v", err)
 	}
