@@ -31,11 +31,11 @@ func setupEdgeCaseTestDB(t *testing.T) *sql.DB {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			email TEXT UNIQUE NOT NULL,
 			password TEXT NOT NULL,
-			first_name TEXT,
-			last_name TEXT,
-			date_of_birth TEXT,
+			firstname TEXT,
+			lastname TEXT,
+			dateofbirth TEXT,
 			nickname TEXT,
-			about_me TEXT,
+			aboutme TEXT,
 			is_profile_public BOOLEAN,
 			avatar TEXT,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -71,7 +71,7 @@ func createEdgeCaseTestUser(t *testing.T, db *sql.DB) {
 	}
 
 	_, err = db.Exec(`
-		INSERT INTO Users (email, password, first_name, last_name, nickname, is_profile_public)
+		INSERT INTO Users (email, password, firstname, lastname, nickname, is_profile_public)
 		VALUES (?, ?, ?, ?, ?, ?)
 	`, "test@example.com", hashedPassword, "Test", "User", "testuser", true)
 	if err != nil {
@@ -315,6 +315,7 @@ func TestSessionCleanup(t *testing.T) {
 
 	// Perform multiple logins for the same user
 	sessionIDs := make([]string, 3)
+	var err error
 	for i := 0; i < 3; i++ {
 		loginReq := models.LoginRequest{
 			Email:    "test@example.com",
@@ -346,7 +347,7 @@ func TestSessionCleanup(t *testing.T) {
 
 	// Count total sessions for this user
 	var sessionCount int
-	err := db.QueryRow("SELECT COUNT(*) FROM Sessions WHERE user_id = 1").Scan(&sessionCount)
+	err = db.QueryRow("SELECT COUNT(*) FROM Sessions WHERE user_id = 1").Scan(&sessionCount)
 	if err != nil {
 		t.Fatal(err)
 	}

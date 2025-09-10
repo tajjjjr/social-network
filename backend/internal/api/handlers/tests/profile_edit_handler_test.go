@@ -39,7 +39,8 @@ func setupProfileEditTestDB(t *testing.T) *sql.DB {
 		is_profile_public BOOLEAN DEFAULT 0,
 		avatar TEXT,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);`
+	);
+	`
 
 	if _, err := db.Exec(createUsersTable); err != nil {
 		t.Fatalf("Failed to create Users table: %v", err)
@@ -48,7 +49,8 @@ func setupProfileEditTestDB(t *testing.T) *sql.DB {
 	// Insert test user
 	insertUser := `
 	INSERT INTO Users (id, email, password, first_name, last_name, date_of_birth, nickname, about_me, is_profile_public, avatar)
-	VALUES (1, 'test@example.com', '$2a$10$hashedpassword', 'John', 'Doe', '1990-01-01', 'johndoe', 'Test bio', 1, 'avatar.jpg');`
+	VALUES (1, 'test@example.com', '$2a$10$hashedpassword', 'John', 'Doe', '1990-01-01', 'johndoe', 'Test bio', 1, 'avatar.jpg');
+	`
 
 	if _, err := db.Exec(insertUser); err != nil {
 		t.Fatalf("Failed to insert test user: %v", err)
@@ -57,7 +59,8 @@ func setupProfileEditTestDB(t *testing.T) *sql.DB {
 	// Insert another user for email conflict testing
 	insertUser2 := `
 	INSERT INTO Users (id, email, password, first_name, last_name, date_of_birth, nickname, about_me, is_profile_public, avatar)
-	VALUES (2, 'existing@example.com', '$2a$10$hashedpassword', 'Jane', 'Smith', '1992-05-15', 'janesmith', 'Another bio', 0, 'avatar2.jpg');`
+	VALUES (2, 'existing@example.com', '$2a$10$hashedpassword', 'Jane', 'Smith', '1992-05-15', 'janesmith', 'Another bio', 0, 'avatar2.jpg');
+	`
 
 	if _, err := db.Exec(insertUser2); err != nil {
 		t.Fatalf("Failed to insert second test user: %v", err)
@@ -106,8 +109,8 @@ func TestEditProfile_Success(t *testing.T) {
 	// Create form data
 	formData := map[string]string{
 		"email":       "updated@example.com",
-		"firstname":   "UpdatedJohn",
-		"lastname":    "UpdatedDoe",
+		"first_name":   "UpdatedJohn",
+		"last_name":    "UpdatedDoe",
 		"dateofbirth": "1991-02-02",
 		"nickname":    "updatedjohndoe",
 		"aboutme":     "Updated bio",
@@ -176,8 +179,8 @@ func TestEditProfile_EmailAlreadyExists(t *testing.T) {
 	// Try to update to an email that already exists (user 2's email)
 	formData := map[string]string{
 		"email":       "existing@example.com", // This email belongs to user 2
-		"firstname":   "UpdatedJohn",
-		"lastname":    "UpdatedDoe",
+		"first_name":   "UpdatedJohn",
+		"last_name":    "UpdatedDoe",
 		"dateofbirth": "1991-02-02",
 		"nickname":    "updatedjohndoe",
 		"aboutme":     "Updated bio",
@@ -224,8 +227,8 @@ func TestEditProfile_SameEmailAllowed(t *testing.T) {
 	// User updating with their own email should be allowed
 	formData := map[string]string{
 		"email":       "test@example.com", // Same email as user 1
-		"firstname":   "UpdatedJohn",
-		"lastname":    "UpdatedDoe",
+		"first_name":   "UpdatedJohn",
+		"last_name":    "UpdatedDoe",
 		"dateofbirth": "1991-02-02",
 		"nickname":    "updatedjohndoe",
 		"aboutme":     "Updated bio",
@@ -283,8 +286,8 @@ func TestEditProfile_InvalidEmail(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			formData := map[string]string{
 				"email":       tc.email,
-				"firstname":   "UpdatedJohn",
-				"lastname":    "UpdatedDoe",
+				"first_name":   "UpdatedJohn",
+				"last_name":    "UpdatedDoe",
 				"dateofbirth": "1991-02-02",
 				"nickname":    "updatedjohndoe",
 				"aboutme":     "Updated bio",
@@ -331,8 +334,8 @@ func TestEditProfile_Unauthorized(t *testing.T) {
 
 	formData := map[string]string{
 		"email":       "updated@example.com",
-		"firstname":   "UpdatedJohn",
-		"lastname":    "UpdatedDoe",
+		"first_name":   "UpdatedJohn",
+		"last_name":    "UpdatedDoe",
 		"dateofbirth": "1991-02-02",
 		"nickname":    "updatedjohndoe",
 		"aboutme":     "Updated bio",
@@ -408,8 +411,8 @@ func TestEditProfile_WithAvatar(t *testing.T) {
 	// Create form data with a small test image
 	formData := map[string]string{
 		"email":       "updated@example.com",
-		"firstname":   "UpdatedJohn",
-		"lastname":    "UpdatedDoe",
+		"first_name":   "UpdatedJohn",
+		"last_name":    "UpdatedDoe",
 		"dateofbirth": "1991-02-02",
 		"nickname":    "updatedjohndoe",
 		"aboutme":     "Updated bio",
@@ -458,8 +461,8 @@ func TestEditProfile_XSSPrevention(t *testing.T) {
 	// Test XSS prevention with malicious input
 	formData := map[string]string{
 		"email":       "test@example.com",
-		"firstname":   "<script>alert('xss')</script>",
-		"lastname":    "<img src=x onerror=alert('xss')>",
+		"first_name":   "<script>alert('xss')</script>",
+		"last_name":    "<img src=x onerror=alert('xss')>",
 		"dateofbirth": "1991-02-02",
 		"nickname":    "<svg onload=alert('xss')>",
 		"aboutme":     "<iframe src='javascript:alert(\"xss\")'></iframe>",
@@ -530,8 +533,8 @@ func TestEditProfile_ProfileVisibilityToggle(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			formData := map[string]string{
 				"email":       "test@example.com",
-				"firstname":   "John",
-				"lastname":    "Doe",
+				"first_name":   "John",
+				"last_name":    "Doe",
 				"dateofbirth": "1990-01-01",
 				"nickname":    "johndoe",
 				"aboutme":     "Test bio",
