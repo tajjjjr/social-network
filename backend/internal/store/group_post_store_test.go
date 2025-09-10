@@ -2,6 +2,7 @@ package store
 
 import (
 	"database/sql"
+	"fmt"
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -27,52 +28,27 @@ func setupGroupPostTestDB(t *testing.T) *sql.DB {
 	);`
 
 	createGroupsTableSQL := `CREATE TABLE Groups (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		title TEXT NOT NULL,
-		description TEXT,
-		creator_id INTEGER NOT NULL,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);`
-
-	createGroupPostsTableSQL := `CREATE TABLE Group_Posts (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		group_id INTEGER NOT NULL,
-		user_id INTEGER NOT NULL,
+		id TEXT PRIMARY KEY,
+		public_id TEXT UNIQUE,
+		type TEXT NOT NULL CHECK (type IN ('group', 'member', 'request', 'event', 'post', 'comment')),
+		group_id TEXT,
+		user_id INTEGER,
+		title TEXT,
 		content TEXT,
+		role TEXT DEFAULT 'member' CHECK (role IN ('admin', 'member')),
+		status TEXT DEFAULT 'active' CHECK (status IN ('active', 'pending', 'rejected', 'going', 'not_going')),
+		privacy TEXT DEFAULT 'public' CHECK (privacy IN ('public', 'private')),
 		image TEXT,
-		like_count INTEGER DEFAULT 0,
-		dislike_count INTEGER DEFAULT 0,
+		data TEXT,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);`
-
-	createGroupCommentsTableSQL := `CREATE TABLE Group_Post_Comments (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		group_post_id INTEGER NOT NULL,
-		user_id INTEGER NOT NULL,
-		parent_comment_id INTEGER,
-		content TEXT NOT NULL,
-		image TEXT,
-		like_count INTEGER DEFAULT 0,
-		dislike_count INTEGER DEFAULT 0,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);`
-
-	createGroupMembersTableSQL := `CREATE TABLE Group_Members (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		group_id INTEGER NOT NULL,
-		user_id INTEGER NOT NULL,
-		role TEXT DEFAULT 'member',
-		is_accepted BOOLEAN DEFAULT 0
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
+		FOREIGN KEY (group_id) REFERENCES Groups(id) ON DELETE CASCADE
 	);`
 
 	tables := []string{
 		createUsersTableSQL,
 		createGroupsTableSQL,
-		createGroupPostsTableSQL,
-		createGroupCommentsTableSQL,
-		createGroupMembersTableSQL,
 	}
 
 	for _, table := range tables {
@@ -87,7 +63,10 @@ func setupGroupPostTestDB(t *testing.T) *sql.DB {
 		t.Fatal(err)
 	}
 
-	_, err = db.Exec("INSERT INTO Groups (id, title, description, creator_id) VALUES (1, 'Test Group', 'Test Description', 1)")
+	_, err = db.Exec("INSERT INTO Groups (id, public_id, type, user_id, title, content, role, privacy) VALUES ('1', 'group-1', 'group', 1, 'Test Group', 'Test Description', 'admin', 'public')")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +81,7 @@ func TestCreateGroupPost(t *testing.T) {
 	store := NewGroupPostStore(db)
 
 	post := &models.GroupPost{
-		GroupID: 1,
+		GroupID: "1",
 		UserID:  1,
 		Content: "Test group post content",
 		Image:   "test.jpg",
@@ -113,8 +92,8 @@ func TestCreateGroupPost(t *testing.T) {
 		t.Fatalf("CreateGroupPost failed: %v", err)
 	}
 
-	if createdPost.ID == 0 {
-		t.Error("Expected post ID to be set")
+	if createdPost.PublicID == "" {
+		t.Error("Expected post public ID to be set")
 	}
 
 	if createdPost.Content != "Test group post content" {
@@ -129,8 +108,8 @@ func TestGetGroupPosts(t *testing.T) {
 	store := NewGroupPostStore(db)
 
 	// Create test posts
-	post1 := &models.GroupPost{GroupID: 1, UserID: 1, Content: "Post 1"}
-	post2 := &models.GroupPost{GroupID: 1, UserID: 1, Content: "Post 2"}
+	post1 := &models.GroupPost{GroupID: "1", UserID: 1, Content: "Post 1"}
+	post2 := &models.GroupPost{GroupID: "1", UserID: 1, Content: "Post 2"}
 
 	_, err := store.CreateGroupPost(post1)
 	if err != nil {
@@ -142,11 +121,12 @@ func TestGetGroupPosts(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	posts, err := store.GetGroupPosts(1, 1, 10, 0)
+	posts, err := store.GetGroupPosts("1", 1, 10, 0)
 	if err != nil {
 		t.Fatalf("GetGroupPosts failed: %v", err)
 	}
 
+	// Since we created 2 posts, expect 2 posts
 	if len(posts) != 2 {
 		t.Errorf("Expected 2 posts, got %d", len(posts))
 	}
@@ -159,14 +139,13 @@ func TestCreateGroupPostComment(t *testing.T) {
 	store := NewGroupPostStore(db)
 
 	// Create a post first
-	post := &models.GroupPost{GroupID: 1, UserID: 1, Content: "Test post"}
+	post := &models.GroupPost{GroupID: "1", UserID: 1, Content: "Test post"}
 	createdPost, err := store.CreateGroupPost(post)
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	comment := &models.GroupPostComment{
-		GroupPostID: createdPost.ID,
+		GroupPostID: fmt.Sprintf("%d", createdPost.ID),
 		UserID:      1,
 		Content:     "Test comment",
 	}
@@ -176,8 +155,8 @@ func TestCreateGroupPostComment(t *testing.T) {
 		t.Fatalf("CreateGroupPostComment failed: %v", err)
 	}
 
-	if createdComment.ID == 0 {
-		t.Error("Expected comment ID to be set")
+	if createdComment.PublicID == "" {
+		t.Error("Expected comment public ID to be set")
 	}
 
 	if createdComment.Content != "Test comment" {
@@ -192,7 +171,7 @@ func TestCanUserDeleteGroupContent(t *testing.T) {
 	store := NewGroupPostStore(db)
 
 	// Test group creator can delete
-	canDelete, err := store.CanUserDeleteGroupContent(1, 1)
+	canDelete, err := store.CanUserDeleteGroupContent("1", 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -206,7 +185,7 @@ func TestCanUserDeleteGroupContent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	canDelete, err = store.CanUserDeleteGroupContent(1, 2)
+	canDelete, err = store.CanUserDeleteGroupContent("1", 2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,12 +194,12 @@ func TestCanUserDeleteGroupContent(t *testing.T) {
 	}
 
 	// Test admin can delete
-	_, err = db.Exec("INSERT INTO Group_Members (group_id, user_id, role, is_accepted) VALUES (1, 2, 'admin', 1)")
+	_, err = db.Exec("INSERT INTO Groups (id, type, group_id, user_id, role, status) VALUES ('admin-1', 'member', '1', 2, 'admin', 'active')")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	canDelete, err = store.CanUserDeleteGroupContent(1, 2)
+	canDelete, err = store.CanUserDeleteGroupContent("1", 2)
 	if err != nil {
 		t.Fatal(err)
 	}

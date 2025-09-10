@@ -2,9 +2,8 @@ package store
 
 import (
 	"database/sql"
-	"fmt"
 
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/google/uuid"
 	"github.com/tajjjjr/social-network/backend/internal/models"
 )
 
@@ -17,74 +16,40 @@ func NewGroupStore(db *sql.DB) GroupStore {
 }
 
 func (s *groupStore) CreateGroup(group *models.Group) (*models.Group, error) {
-	tx, err := s.db.Begin()
+	group.ID = uuid.New().String()
+	group.PublicID = uuid.New().String()
+	_, err := s.db.Exec(`
+		INSERT INTO Groups (id, public_id, type, user_id, title, content, role, privacy, image) 
+		VALUES (?, ?, 'group', ?, ?, ?, 'admin', ?, ?)`,
+		group.ID, group.PublicID, group.CreatorID, group.Title, group.Description, group.Privacy, group.Avatar)
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if err := tx.Rollback(); err != nil {
-			fmt.Printf("Failed to rollback transaction: %v\n", err)
-		}
-	}()
-
-	stmt, err := tx.Prepare("INSERT INTO Groups (creator_id, title, description, avatar) VALUES (?, ?, ?, ?)")
-	if err != nil {
-		return nil, err
-	}
-	defer stmt.Close()
-
-	result, err := stmt.Exec(group.CreatorID, group.Title, group.Description, group.Avatar)
-	if err != nil {
-		return nil, err
-	}
-
-	id, err := result.LastInsertId()
-	if err != nil {
-		return nil, err
-	}
-
-	group.ID = id
-
-	// Add creator as member
-	memberStmt, err := tx.Prepare("INSERT INTO Group_Members (group_id, user_id, is_accepted) VALUES (?, ?, 1)")
-	if err != nil {
-		return nil, err
-	}
-	defer memberStmt.Close()
-
-	_, err = memberStmt.Exec(group.ID, group.CreatorID)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = tx.Commit(); err != nil {
-		return nil, err
-	}
-
 	return group, nil
 }
 
-func (s *groupStore) GetGroupByID(groupID int64) (*models.Group, error) {
+func (s *groupStore) GetGroupByID(publicID string) (*models.Group, error) {
 	var group models.Group
-	err := s.db.QueryRow("SELECT id, creator_id, title, description, avatar, created_at FROM Groups WHERE id = ?", groupID).Scan(
-		&group.ID,
-		&group.CreatorID,
-		&group.Title,
-		&group.Description,
-		&group.Avatar,
-		&group.CreatedAt,
-	)
+	var avatar sql.NullString
+	err := s.db.QueryRow(`
+		SELECT id, public_id, user_id, title, content, privacy, COALESCE(image, ''), created_at 
+		FROM Groups WHERE type = 'group' AND public_id = ?`, publicID).Scan(
+		&group.ID, &group.PublicID, &group.CreatorID, &group.Title, &group.Description,
+		&group.Privacy, &avatar, &group.CreatedAt)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("group not found")
-		}
 		return nil, err
 	}
-	return &group, nil
+	group.Avatar = avatar.String
+	return &group, err
 }
 
 func (s *groupStore) SearchPublicGroups(query string) ([]*models.Group, error) {
-	rows, err := s.db.Query("SELECT id, creator_id, title, description, privacy, avatar, created_at FROM Groups WHERE title LIKE ? AND privacy = 'public'", "%"+query+"%")
+	rows, err := s.db.Query(`
+		SELECT id, COALESCE(public_id, id), COALESCE(user_id, 0), COALESCE(title, ''), COALESCE(content, ''), COALESCE(privacy, 'public'), COALESCE(image, ''), COALESCE(created_at, CURRENT_TIMESTAMP)
+		FROM Groups 
+		WHERE type = 'group' AND title LIKE ? AND COALESCE(privacy, 'public') = 'public'
+		ORDER BY COALESCE(created_at, CURRENT_TIMESTAMP) DESC`,
+		"%"+query+"%")
 	if err != nil {
 		return nil, err
 	}
@@ -93,26 +58,22 @@ func (s *groupStore) SearchPublicGroups(query string) ([]*models.Group, error) {
 	var groups []*models.Group
 	for rows.Next() {
 		var group models.Group
-		err := rows.Scan(
-			&group.ID,
-			&group.CreatorID,
-			&group.Title,
-			&group.Description,
-			&group.Privacy,
-			&group.Avatar,
-			&group.CreatedAt,
-		)
+		err := rows.Scan(&group.ID, &group.PublicID, &group.CreatorID, &group.Title, &group.Description,
+			&group.Privacy, &group.Avatar, &group.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
 		groups = append(groups, &group)
 	}
-
 	return groups, nil
 }
 
 func (s *groupStore) GetAllPublicGroups() ([]*models.Group, error) {
-	rows, err := s.db.Query("SELECT id, creator_id, title, description, privacy, avatar, created_at FROM Groups WHERE privacy = 'public' ORDER BY created_at DESC")
+	rows, err := s.db.Query(`
+		SELECT id, COALESCE(public_id, id), COALESCE(user_id, 0), COALESCE(title, ''), COALESCE(content, ''), COALESCE(privacy, 'public'), COALESCE(image, ''), COALESCE(created_at, CURRENT_TIMESTAMP)
+		FROM Groups 
+		WHERE type = 'group' AND COALESCE(privacy, 'public') = 'public'
+		ORDER BY COALESCE(created_at, CURRENT_TIMESTAMP) DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -121,32 +82,67 @@ func (s *groupStore) GetAllPublicGroups() ([]*models.Group, error) {
 	var groups []*models.Group
 	for rows.Next() {
 		var group models.Group
-		err := rows.Scan(
-			&group.ID,
-			&group.CreatorID,
-			&group.Title,
-			&group.Description,
-			&group.Privacy,
-			&group.Avatar,
-			&group.CreatedAt,
-		)
+		err := rows.Scan(&group.ID, &group.PublicID, &group.CreatorID, &group.Title, &group.Description,
+			&group.Privacy, &group.Avatar, &group.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
 		groups = append(groups, &group)
 	}
-
 	return groups, nil
+}
+
+func (s *groupStore) getGroupIDByPublicID(publicID string) (string, error) {
+	var id string
+	err := s.db.QueryRow("SELECT id FROM Groups WHERE public_id = ? AND type = 'group'", publicID).Scan(&id)
+	return id, err
+}
+
+func (s *groupStore) JoinGroup(publicID string, userID int64) error {
+	groupID, err := s.getGroupIDByPublicID(publicID)
+	if err != nil {
+		return err
+	}
+	memberID := uuid.New().String()
+	_, err = s.db.Exec(`
+		INSERT INTO Groups (id, type, group_id, user_id, role, status) 
+		VALUES (?, 'member', ?, ?, 'member', 'active')`,
+		memberID, groupID, userID)
+	return err
+}
+
+func (s *groupStore) LeaveGroup(publicID string, userID int64) error {
+	groupID, err := s.getGroupIDByPublicID(publicID)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec(`DELETE FROM Groups WHERE type = 'member' AND group_id = ? AND user_id = ?`, groupID, userID)
+	return err
+}
+
+func (s *groupStore) IsGroupMember(publicID string, userID int64) (bool, error) {
+	groupID, err := s.getGroupIDByPublicID(publicID)
+	if err != nil {
+		return false, err
+	}
+	var count int
+	err = s.db.QueryRow(`
+		SELECT COUNT(*) FROM Groups 
+		WHERE (type = 'group' AND id = ? AND user_id = ?) 
+		OR (type = 'member' AND group_id = ? AND user_id = ? AND status = 'active')`,
+		groupID, userID, groupID, userID).Scan(&count)
+	return count > 0, err
 }
 
 func (s *groupStore) GetUserGroups(userID int64) ([]*models.Group, error) {
 	rows, err := s.db.Query(`
-		SELECT g.id, g.creator_id, g.title, g.description, g.privacy, g.avatar, g.created_at 
-		FROM Groups g 
-		JOIN Group_Members gm ON g.id = gm.group_id 
-		WHERE gm.user_id = ? AND gm.is_accepted = 1
-		ORDER BY g.created_at DESC
-	`, userID)
+		SELECT DISTINCT id, COALESCE(public_id, id), COALESCE(user_id, 0), COALESCE(title, ''), COALESCE(content, ''), COALESCE(privacy, 'public'), COALESCE(image, ''), COALESCE(created_at, CURRENT_TIMESTAMP)
+		FROM Groups 
+		WHERE (type = 'group' AND user_id = ?)
+		OR (type = 'group' AND id IN (
+			SELECT group_id FROM Groups WHERE type = 'member' AND user_id = ? AND status = 'active'
+		))
+		ORDER BY COALESCE(created_at, CURRENT_TIMESTAMP) DESC`, userID, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -155,20 +151,12 @@ func (s *groupStore) GetUserGroups(userID int64) ([]*models.Group, error) {
 	var groups []*models.Group
 	for rows.Next() {
 		var group models.Group
-		err := rows.Scan(
-			&group.ID,
-			&group.CreatorID,
-			&group.Title,
-			&group.Description,
-			&group.Privacy,
-			&group.Avatar,
-			&group.CreatedAt,
-		)
+		err := rows.Scan(&group.ID, &group.PublicID, &group.CreatorID, &group.Title, &group.Description,
+			&group.Privacy, &group.Avatar, &group.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
 		groups = append(groups, &group)
 	}
-
 	return groups, nil
 }

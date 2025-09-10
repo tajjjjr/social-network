@@ -4,20 +4,21 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tajjjjr/social-network/backend/internal/models"
 )
 
 type GroupPostStore interface {
 	CreateGroupPost(post *models.GroupPost) (*models.GroupPost, error)
-	GetGroupPostByID(postID int64) (*models.GroupPost, error)
-	GetGroupPosts(groupID string, userID int64, limit, offset int) ([]*models.GroupPost, error) // migrated groupID to string
-	UpdateGroupPost(postID, userID int64, content string, imageData []byte, imageMimeType string) (*models.GroupPost, error)
-	DeleteGroupPost(postID, userID int64) error
+	GetGroupPostByID(postPublicID string) (*models.GroupPost, error)
+	GetGroupPosts(groupID string, userID int64, limit, offset int) ([]*models.GroupPost, error)
+	UpdateGroupPost(postPublicID string, userID int64, content string, imageData []byte, imageMimeType string) (*models.GroupPost, error)
+	DeleteGroupPost(postPublicID string, userID int64) error
 	CreateGroupPostComment(comment *models.GroupPostComment) (*models.GroupPostComment, error)
-	GetGroupPostComments(postID int64, userID int64) ([]*models.GroupPostComment, error)
-	UpdateGroupPostComment(commentID, userID int64, content string, imageData []byte, imageMimeType string) (*models.GroupPostComment, error)
-	DeleteGroupPostComment(commentID, userID int64) error
-	CanUserDeleteGroupContent(groupID string, userID int64) (bool, error) // migrated groupID to string
+	GetGroupPostComments(postPublicID string, userID int64) ([]*models.GroupPostComment, error)
+	UpdateGroupPostComment(commentPublicID string, userID int64, content string, imageData []byte, imageMimeType string) (*models.GroupPostComment, error)
+	DeleteGroupPostComment(commentPublicID string, userID int64) error
+	CanUserDeleteGroupContent(groupID string, userID int64) (bool, error)
 }
 
 type groupPostStore struct {
@@ -29,36 +30,26 @@ func NewGroupPostStore(db *sql.DB) GroupPostStore {
 }
 
 func (s *groupPostStore) CreateGroupPost(post *models.GroupPost) (*models.GroupPost, error) {
-	stmt, err := s.db.Prepare("INSERT INTO Group_Posts (group_id, user_id, content, image) VALUES (?, ?, ?, ?)")
-	if err != nil {
-		return nil, err
-	}
-	defer stmt.Close()
-
-	result, err := stmt.Exec(post.GroupID, post.UserID, post.Content, post.Image)
-	if err != nil {
-		return nil, err
-	}
-
-	id, err := result.LastInsertId()
-	if err != nil {
-		return nil, err
-	}
-
-	post.ID = id
+	post.PublicID = uuid.New().String()
 	post.CreatedAt = time.Now()
 	post.UpdatedAt = time.Now()
+	
+	_, err := s.db.Exec(`
+		INSERT INTO Groups (id, public_id, type, group_id, user_id, content, image, created_at, updated_at)
+		VALUES (?, ?, 'post', ?, ?, ?, ?, ?, ?)
+	`, post.PublicID, post.PublicID, post.GroupID, post.UserID, post.Content, post.Image, post.CreatedAt, post.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
 	return post, nil
 }
 
-func (s *groupPostStore) GetGroupPostByID(postID int64) (*models.GroupPost, error) {
+func (s *groupPostStore) GetGroupPostByID(postPublicID string) (*models.GroupPost, error) {
 	var post models.GroupPost
 	err := s.db.QueryRow(`
-		SELECT id, group_id, user_id, content, image, like_count, dislike_count, created_at, updated_at 
-		FROM Group_Posts WHERE id = ?`, postID).Scan(
-		&post.ID, &post.GroupID, &post.UserID, &post.Content, &post.Image,
-		&post.LikeCount, &post.DislikeCount, &post.CreatedAt, &post.UpdatedAt,
-	)
+		SELECT public_id, group_id, user_id, content, COALESCE(image, ''), created_at, updated_at
+		FROM Groups WHERE public_id = ? AND type = 'post'
+	`, postPublicID).Scan(&post.PublicID, &post.GroupID, &post.UserID, &post.Content, &post.Image, &post.CreatedAt, &post.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -66,132 +57,78 @@ func (s *groupPostStore) GetGroupPostByID(postID int64) (*models.GroupPost, erro
 }
 
 func (s *groupPostStore) GetGroupPosts(groupID string, userID int64, limit, offset int) ([]*models.GroupPost, error) {
-
 	rows, err := s.db.Query(`
-		SELECT gp.id, gp.group_id, gp.user_id, gp.content, gp.image, gp.like_count, gp.dislike_count, 
-		       gp.created_at, gp.updated_at, u.firstname, u.lastname, u.nickname, u.avatar
-		FROM Group_Posts gp
-		LEFT JOIN Users u ON gp.user_id = u.id
-		WHERE gp.group_id = ?
-		ORDER BY gp.created_at DESC
-		LIMIT ? OFFSET ?`, groupID, limit, offset)
+		SELECT public_id, group_id, user_id, content, COALESCE(image, ''), created_at, updated_at
+		FROM Groups WHERE group_id = ? AND type = 'post'
+		ORDER BY created_at DESC
+		LIMIT ? OFFSET ?
+	`, groupID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-
+	
 	var posts []*models.GroupPost
 	for rows.Next() {
 		var post models.GroupPost
-		var author models.User
-		var firstName, lastName, nickname, avatar sql.NullString
-		err := rows.Scan(&post.ID, &post.GroupID, &post.UserID, &post.Content, &post.Image,
-			&post.LikeCount, &post.DislikeCount, &post.CreatedAt, &post.UpdatedAt,
-			&firstName, &lastName, &nickname, &avatar)
+		err := rows.Scan(&post.PublicID, &post.GroupID, &post.UserID, &post.Content, &post.Image, &post.CreatedAt, &post.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
-		
-		author.ID = post.UserID
-		if firstName.Valid {
-			author.FirstName = &firstName.String
-		}
-		if lastName.Valid {
-			author.LastName = &lastName.String
-		}
-		if nickname.Valid {
-			author.Nickname = &nickname.String
-		}
-		if avatar.Valid {
-			author.Avatar = &avatar.String
-		}
-		post.Author = &author
-		// Ensure user_id field is set for frontend compatibility
-		post.UserID = post.UserID
 		posts = append(posts, &post)
 	}
 	return posts, nil
 }
 
-func (s *groupPostStore) UpdateGroupPost(postID, userID int64, content string, imageData []byte, imageMimeType string) (*models.GroupPost, error) {
-	// Check if user owns the post
-	var ownerID int64
-	err := s.db.QueryRow("SELECT user_id FROM Group_Posts WHERE id = ?", postID).Scan(&ownerID)
+func (s *groupPostStore) UpdateGroupPost(postPublicID string, userID int64, content string, imageData []byte, imageMimeType string) (*models.GroupPost, error) {
+	_, err := s.db.Exec(`
+		UPDATE Groups SET content = ?, updated_at = CURRENT_TIMESTAMP
+		WHERE public_id = ? AND user_id = ? AND type = 'post'
+	`, content, postPublicID, userID)
 	if err != nil {
 		return nil, err
 	}
-	if ownerID != userID {
-		return nil, sql.ErrNoRows
-	}
-
-	stmt, err := s.db.Prepare("UPDATE Group_Posts SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
-	if err != nil {
-		return nil, err
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(content, postID)
-	if err != nil {
-		return nil, err
-	}
-
-	return s.GetGroupPostByID(postID)
+	return s.GetGroupPostByID(postPublicID)
 }
 
-func (s *groupPostStore) DeleteGroupPost(postID, userID int64) error {
-	// Check if user owns the post or is group admin
-	canDelete, err := s.canUserDeletePost(postID, userID)
-	if err != nil {
-		return err
-	}
-	if !canDelete {
-		return sql.ErrNoRows
-	}
-
-	_, err = s.db.Exec("DELETE FROM Group_Posts WHERE id = ?", postID)
+func (s *groupPostStore) DeleteGroupPost(postPublicID string, userID int64) error {
+	_, err := s.db.Exec(`
+		DELETE FROM Groups 
+		WHERE public_id = ? AND user_id = ? AND type = 'post'
+	`, postPublicID, userID)
 	return err
 }
 
 func (s *groupPostStore) CreateGroupPostComment(comment *models.GroupPostComment) (*models.GroupPostComment, error) {
-	stmt, err := s.db.Prepare("INSERT INTO Group_Post_Comments (group_post_id, user_id, parent_comment_id, content, image) VALUES (?, ?, ?, ?, ?)")
-	if err != nil {
-		return nil, err
-	}
-	defer stmt.Close()
-
-	result, err := stmt.Exec(comment.GroupPostID, comment.UserID, comment.ParentCommentID, comment.Content, comment.Image)
-	if err != nil {
-		return nil, err
-	}
-
-	id, err := result.LastInsertId()
-	if err != nil {
-		return nil, err
-	}
-
-	comment.ID = id
+	comment.PublicID = uuid.New().String()
 	comment.CreatedAt = time.Now()
 	comment.UpdatedAt = time.Now()
+	
+	_, err := s.db.Exec(`
+		INSERT INTO Groups (id, public_id, type, group_id, user_id, content, image, created_at, updated_at)
+		VALUES (?, ?, 'comment', ?, ?, ?, ?, ?, ?)
+	`, comment.PublicID, comment.PublicID, comment.GroupPostID, comment.UserID, comment.Content, comment.Image, comment.CreatedAt, comment.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
 	return comment, nil
 }
 
-func (s *groupPostStore) GetGroupPostComments(postID int64, userID int64) ([]*models.GroupPostComment, error) {
+func (s *groupPostStore) GetGroupPostComments(postPublicID string, userID int64) ([]*models.GroupPostComment, error) {
 	rows, err := s.db.Query(`
-		SELECT id, group_post_id, user_id, parent_comment_id, content, image, like_count, dislike_count, created_at, updated_at
-		FROM Group_Post_Comments 
-		WHERE group_post_id = ?
-		ORDER BY created_at ASC`, postID)
+		SELECT public_id, group_id, user_id, content, COALESCE(image, ''), created_at, updated_at
+		FROM Groups WHERE group_id = ? AND type = 'comment'
+		ORDER BY created_at ASC
+	`, postPublicID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-
+	
 	var comments []*models.GroupPostComment
 	for rows.Next() {
 		var comment models.GroupPostComment
-		err := rows.Scan(&comment.ID, &comment.GroupPostID, &comment.UserID, &comment.ParentCommentID,
-			&comment.Content, &comment.Image, &comment.LikeCount, &comment.DislikeCount,
-			&comment.CreatedAt, &comment.UpdatedAt)
+		err := rows.Scan(&comment.PublicID, &comment.GroupPostID, &comment.UserID, &comment.Content, &comment.Image, &comment.CreatedAt, &comment.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -200,52 +137,31 @@ func (s *groupPostStore) GetGroupPostComments(postID int64, userID int64) ([]*mo
 	return comments, nil
 }
 
-func (s *groupPostStore) UpdateGroupPostComment(commentID, userID int64, content string, imageData []byte, imageMimeType string) (*models.GroupPostComment, error) {
-	// Check if user owns the comment
-	var ownerID int64
-	err := s.db.QueryRow("SELECT user_id FROM Group_Post_Comments WHERE id = ?", commentID).Scan(&ownerID)
+func (s *groupPostStore) UpdateGroupPostComment(commentPublicID string, userID int64, content string, imageData []byte, imageMimeType string) (*models.GroupPostComment, error) {
+	_, err := s.db.Exec(`
+		UPDATE Groups SET content = ?, updated_at = CURRENT_TIMESTAMP
+		WHERE public_id = ? AND user_id = ? AND type = 'comment'
+	`, content, commentPublicID, userID)
 	if err != nil {
 		return nil, err
 	}
-	if ownerID != userID {
-		return nil, sql.ErrNoRows
-	}
-
-	stmt, err := s.db.Prepare("UPDATE Group_Post_Comments SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
-	if err != nil {
-		return nil, err
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(content, commentID)
-	if err != nil {
-		return nil, err
-	}
-
+	
 	var comment models.GroupPostComment
 	err = s.db.QueryRow(`
-		SELECT id, group_post_id, user_id, parent_comment_id, content, image, like_count, dislike_count, created_at, updated_at
-		FROM Group_Post_Comments WHERE id = ?`, commentID).Scan(
-		&comment.ID, &comment.GroupPostID, &comment.UserID, &comment.ParentCommentID,
-		&comment.Content, &comment.Image, &comment.LikeCount, &comment.DislikeCount,
-		&comment.CreatedAt, &comment.UpdatedAt)
+		SELECT public_id, group_id, user_id, content, COALESCE(image, ''), created_at, updated_at
+		FROM Groups WHERE public_id = ? AND type = 'comment'
+	`, commentPublicID).Scan(&comment.PublicID, &comment.GroupPostID, &comment.UserID, &comment.Content, &comment.Image, &comment.CreatedAt, &comment.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
 	return &comment, nil
 }
 
-func (s *groupPostStore) DeleteGroupPostComment(commentID, userID int64) error {
-	// Check if user owns the comment or is group admin
-	canDelete, err := s.canUserDeleteComment(commentID, userID)
-	if err != nil {
-		return err
-	}
-	if !canDelete {
-		return sql.ErrNoRows
-	}
-
-	_, err = s.db.Exec("DELETE FROM Group_Post_Comments WHERE id = ?", commentID)
+func (s *groupPostStore) DeleteGroupPostComment(commentPublicID string, userID int64) error {
+	_, err := s.db.Exec(`
+		DELETE FROM Groups 
+		WHERE public_id = ? AND user_id = ? AND type = 'comment'
+	`, commentPublicID, userID)
 	return err
 }
 
@@ -254,9 +170,9 @@ func (s *groupPostStore) CanUserDeleteGroupContent(groupID string, userID int64)
 	var count int
 	err := s.db.QueryRow(`
 		SELECT COUNT(*) FROM (
-			SELECT creator_id as user_id FROM Groups WHERE id = ? AND creator_id = ?
+			SELECT user_id FROM Groups WHERE id = ? AND user_id = ? AND type = 'group'
 			UNION
-			SELECT user_id FROM Group_Members WHERE group_id = ? AND user_id = ? AND role = 'admin' AND is_accepted = 1
+			SELECT user_id FROM Groups WHERE group_id = ? AND user_id = ? AND type = 'member' AND role = 'admin' AND status = 'active'
 		)
 	`, groupID, userID, groupID, userID).Scan(&count)
 	if err != nil {
@@ -265,11 +181,11 @@ func (s *groupPostStore) CanUserDeleteGroupContent(groupID string, userID int64)
 	return count > 0, nil
 }
 
-func (s *groupPostStore) canUserDeletePost(postID, userID int64) (bool, error) {
+func (s *groupPostStore) CanUserDeletePost(postID, userID int64) (bool, error) {
 	// Check if user owns the post
 	var ownerID int64
-	var groupID string // migrated to string
-	err := s.db.QueryRow("SELECT user_id, group_id FROM Group_Posts WHERE id = ?", postID).Scan(&ownerID, &groupID)
+	var groupID string
+	err := s.db.QueryRow("SELECT user_id, group_id FROM Groups WHERE id = ? AND type = 'post'", postID).Scan(&ownerID, &groupID)
 	if err != nil {
 		return false, err
 	}
@@ -281,15 +197,14 @@ func (s *groupPostStore) canUserDeletePost(postID, userID int64) (bool, error) {
 	return s.CanUserDeleteGroupContent(groupID, userID)
 }
 
-func (s *groupPostStore) canUserDeleteComment(commentID, userID int64) (bool, error) {
+func (s *groupPostStore) CanUserDeleteComment(commentID, userID int64) (bool, error) {
 	// Check if user owns the comment
 	var ownerID int64
-	var groupID string // migrated to string
+	var groupID string
 	err := s.db.QueryRow(`
-		SELECT gpc.user_id, gp.group_id 
-		FROM Group_Post_Comments gpc 
-		JOIN Group_Posts gp ON gpc.group_post_id = gp.id 
-		WHERE gpc.id = ?`, commentID).Scan(&ownerID, &groupID)
+		SELECT c.user_id, c.group_id 
+		FROM Groups c 
+		WHERE c.id = ? AND c.type = 'comment'`, commentID).Scan(&ownerID, &groupID)
 	if err != nil {
 		return false, err
 	}
