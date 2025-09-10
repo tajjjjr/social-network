@@ -49,7 +49,7 @@ func (s *groupStore) GetGroupByID(publicID string) (*models.Group, error) {
 
 func (s *groupStore) SearchPublicGroups(query string) ([]*models.Group, error) {
 	rows, err := s.db.Query(`
-		SELECT id, COALESCE(public_id, id), COALESCE(user_id, 0), COALESCE(title, ''), COALESCE(content, ''), COALESCE(privacy, 'public'), COALESCE(image, ''), COALESCE(created_at, CURRENT_TIMESTAMP)
+		SELECT id, public_id, COALESCE(user_id, 0), COALESCE(title, ''), COALESCE(content, ''), COALESCE(privacy, 'public'), COALESCE(image, ''), COALESCE(created_at, CURRENT_TIMESTAMP)
 		FROM Groups 
 		WHERE type = 'group' AND title LIKE ? AND COALESCE(privacy, 'public') = 'public'
 		ORDER BY COALESCE(created_at, CURRENT_TIMESTAMP) DESC`,
@@ -139,7 +139,7 @@ func (s *groupStore) IsGroupMember(publicID string, userID int64) (bool, error) 
 
 func (s *groupStore) GetUserGroups(userID int64) ([]*models.Group, error) {
 	rows, err := s.db.Query(`
-		SELECT DISTINCT id, COALESCE(public_id, id), COALESCE(user_id, 0), COALESCE(title, ''), COALESCE(content, ''), COALESCE(privacy, 'public'), COALESCE(image, ''), COALESCE(created_at, CURRENT_TIMESTAMP)
+		SELECT DISTINCT id, public_id, COALESCE(user_id, 0), COALESCE(title, ''), COALESCE(content, ''), COALESCE(privacy, 'public'), COALESCE(image, ''), COALESCE(created_at, CURRENT_TIMESTAMP)
 		FROM Groups 
 		WHERE (type = 'group' AND user_id = ?)
 		OR (type = 'group' AND id IN (

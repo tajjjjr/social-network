@@ -16,13 +16,17 @@ func NewGroupRequestStore(db *sql.DB) GroupRequestStore {
 }
 
 func (s *groupRequestStore) CreateGroupRequest(request *models.GroupRequest) (*models.GroupRequest, error) {
-	stmt, err := s.db.Prepare("INSERT INTO group_requests (group_id, user_id, status) VALUES (?, ?, ?)")
+	// Get internal group ID from public_id
+	var groupID int64
+	err := s.db.QueryRow("SELECT id FROM Groups WHERE public_id = ? AND type = 'group'", request.GroupID).Scan(&groupID)
 	if err != nil {
-		return nil, fmt.Errorf("error preparing statement: %w", err)
+		return nil, fmt.Errorf("error finding group: %w", err)
 	}
-	defer stmt.Close()
 
-	result, err := stmt.Exec(request.GroupID, request.UserID, request.Status)
+	result, err := s.db.Exec(`
+		INSERT INTO Groups (type, group_id, user_id, status) 
+		VALUES ('request', ?, ?, ?)`,
+		groupID, request.UserID, request.Status)
 	if err != nil {
 		return nil, fmt.Errorf("error executing statement: %w", err)
 	}
@@ -32,7 +36,7 @@ func (s *groupRequestStore) CreateGroupRequest(request *models.GroupRequest) (*m
 		return nil, fmt.Errorf("error getting last insert ID: %w", err)
 	}
 
-	request.ID = fmt.Sprintf("%d", id)
+	request.ID = id
 	return request, nil
 }
 
