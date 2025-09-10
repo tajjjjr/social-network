@@ -14,7 +14,7 @@ DROP TABLE IF EXISTS Event_Responses;
 CREATE TABLE Groups (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     public_id TEXT UNIQUE,
-    type TEXT NOT NULL CHECK (type IN ('group', 'member', 'request', 'event', 'post', 'comment')),
+    type TEXT NOT NULL CHECK (type IN ('group', 'member', 'request', 'event', 'post', 'comment', 'message')),
     group_id INTEGER,
     user_id INTEGER,
     title TEXT,

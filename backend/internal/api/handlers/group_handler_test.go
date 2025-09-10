@@ -119,7 +119,7 @@ func (m *MockGroupChatMessageService) SendGroupChatMessage(groupID string, sende
 	if m.SendGroupChatMessageFunc != nil {
 		return m.SendGroupChatMessageFunc(groupID, senderID, content)
 	}
-	return &models.GroupChatMessage{ID: "msg-1", GroupID: "1", SenderID: senderID, Content: content}, nil
+	return &models.GroupChatMessage{PublicID: "msg-1", GroupID: "1", SenderID: senderID, Content: content}, nil
 }
 
 func (m *MockGroupChatMessageService) GetGroupChatMessages(groupID string, userID int64, limit, offset int) ([]*models.GroupChatMessage, error) {
@@ -146,7 +146,7 @@ func (m *MockGroupMemberService) AddGroupMember(groupID string, userID int64, ro
 	if m.AddGroupMemberFunc != nil {
 		return m.AddGroupMemberFunc(groupID, userID, role)
 	}
-	return &models.GroupMember{ID: 1, GroupID: groupID, UserID: userID, Role: role}, nil
+	return &models.GroupMember{ID: 1, PublicID: "member-1", GroupID: groupID, UserID: userID, Role: role}, nil
 }
 
 // MockGroupEventService is a mock implementation of the GroupEventService for testing.
@@ -203,13 +203,13 @@ func TestCreateGroup(t *testing.T) {
 			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusCreated)
 		}
 
-		var createdGroup models.Group
-		if err := json.NewDecoder(rr.Body).Decode(&createdGroup); err != nil {
+		var response map[string]interface{}
+		if err := json.NewDecoder(rr.Body).Decode(&response); err != nil {
 			t.Fatal(err)
 		}
 
-		if createdGroup.PublicID != "group-1" {
-			t.Errorf("handler returned unexpected group ID: got %v want %v", createdGroup.PublicID, "group-1")
+		if response["id"] != "group-1" {
+			t.Errorf("handler returned unexpected group ID: got %v want %v", response["id"], "group-1")
 		}
 	})
 
@@ -240,7 +240,7 @@ func TestSendJoinRequest(t *testing.T) {
 	t.Run("Successful join request", func(t *testing.T) {
 		mockGroupRequestService := &MockGroupRequestService{
 			SendJoinRequestFunc: func(groupID string, userID int64) (*models.GroupRequest, error) {
-				return &models.GroupRequest{ID: "req-1", GroupID: groupID, UserID: userID, Status: "pending"}, nil
+				return &models.GroupRequest{PublicID: "req-1", GroupID: groupID, UserID: userID, Status: "pending"}, nil
 			},
 		}
 
