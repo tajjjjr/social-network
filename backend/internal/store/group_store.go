@@ -16,15 +16,19 @@ func NewGroupStore(db *sql.DB) GroupStore {
 }
 
 func (s *groupStore) CreateGroup(group *models.Group) (*models.Group, error) {
-	group.ID = uuid.New().String()
 	group.PublicID = uuid.New().String()
-	_, err := s.db.Exec(`
-		INSERT INTO Groups (id, public_id, type, user_id, title, content, role, privacy, image) 
-		VALUES (?, ?, 'group', ?, ?, ?, 'admin', ?, ?)`,
-		group.ID, group.PublicID, group.CreatorID, group.Title, group.Description, group.Privacy, group.Avatar)
+	result, err := s.db.Exec(`
+		INSERT INTO Groups (public_id, type, user_id, title, content, role, privacy, image) 
+		VALUES (?, 'group', ?, ?, ?, 'admin', ?, ?)`,
+		group.PublicID, group.CreatorID, group.Title, group.Description, group.Privacy, group.Avatar)
 	if err != nil {
 		return nil, err
 	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+	group.ID = id
 	return group, nil
 }
 
@@ -70,7 +74,7 @@ func (s *groupStore) SearchPublicGroups(query string) ([]*models.Group, error) {
 
 func (s *groupStore) GetAllPublicGroups() ([]*models.Group, error) {
 	rows, err := s.db.Query(`
-		SELECT id, COALESCE(public_id, id), COALESCE(user_id, 0), COALESCE(title, ''), COALESCE(content, ''), COALESCE(privacy, 'public'), COALESCE(image, ''), COALESCE(created_at, CURRENT_TIMESTAMP)
+		SELECT id, public_id, COALESCE(user_id, 0), COALESCE(title, ''), COALESCE(content, ''), COALESCE(privacy, 'public'), COALESCE(image, ''), COALESCE(created_at, CURRENT_TIMESTAMP)
 		FROM Groups 
 		WHERE type = 'group' AND COALESCE(privacy, 'public') = 'public'
 		ORDER BY COALESCE(created_at, CURRENT_TIMESTAMP) DESC`)
@@ -92,8 +96,8 @@ func (s *groupStore) GetAllPublicGroups() ([]*models.Group, error) {
 	return groups, nil
 }
 
-func (s *groupStore) getGroupIDByPublicID(publicID string) (string, error) {
-	var id string
+func (s *groupStore) getGroupIDByPublicID(publicID string) (int64, error) {
+	var id int64
 	err := s.db.QueryRow("SELECT id FROM Groups WHERE public_id = ? AND type = 'group'", publicID).Scan(&id)
 	return id, err
 }
@@ -103,11 +107,10 @@ func (s *groupStore) JoinGroup(publicID string, userID int64) error {
 	if err != nil {
 		return err
 	}
-	memberID := uuid.New().String()
 	_, err = s.db.Exec(`
-		INSERT INTO Groups (id, type, group_id, user_id, role, status) 
-		VALUES (?, 'member', ?, ?, 'member', 'active')`,
-		memberID, groupID, userID)
+		INSERT INTO Groups (type, group_id, user_id, role, status) 
+		VALUES ('member', ?, ?, 'member', 'active')`,
+		groupID, userID)
 	return err
 }
 

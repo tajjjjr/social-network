@@ -20,8 +20,8 @@ type GroupRecord struct {
 }
 
 type Group struct {
-	ID          string    `json:"id"`
-	PublicID    string    `json:"public_id"`
+	ID          int64     `json:"-" db:"id"`
+	PublicID    string    `json:"id" db:"public_id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
 	CreatorID   int64     `json:"creator_id"`

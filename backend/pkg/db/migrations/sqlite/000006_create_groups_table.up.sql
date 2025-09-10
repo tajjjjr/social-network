@@ -12,10 +12,10 @@ DROP TABLE IF EXISTS Event_Responses;
 
 -- Create unified Groups table
 CREATE TABLE Groups (
-    id TEXT PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     public_id TEXT UNIQUE,
     type TEXT NOT NULL CHECK (type IN ('group', 'member', 'request', 'event', 'post', 'comment')),
-    group_id TEXT,
+    group_id INTEGER,
     user_id INTEGER,
     title TEXT,
     content TEXT,
