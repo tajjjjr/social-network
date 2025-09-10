@@ -17,10 +17,11 @@ type GroupHandler struct {
 	groupChatMessageService service.GroupChatMessageService
 	groupMemberService      service.GroupMemberServiceInterface
 	groupEventService       service.GroupEventServiceInterface
+	groupPostService        service.GroupPostServiceInterface
 }
 
-func NewGroupHandler(groupService service.GroupService, groupRequestService service.GroupRequestService, groupChatMessageService service.GroupChatMessageService, groupMemberService service.GroupMemberServiceInterface, groupEventService service.GroupEventServiceInterface) *GroupHandler {
-	return &GroupHandler{groupService: groupService, groupRequestService: groupRequestService, groupChatMessageService: groupChatMessageService, groupMemberService: groupMemberService, groupEventService: groupEventService}
+func NewGroupHandler(groupService service.GroupService, groupRequestService service.GroupRequestService, groupChatMessageService service.GroupChatMessageService, groupMemberService service.GroupMemberServiceInterface, groupEventService service.GroupEventServiceInterface, groupPostService service.GroupPostServiceInterface) *GroupHandler {
+	return &GroupHandler{groupService: groupService, groupRequestService: groupRequestService, groupChatMessageService: groupChatMessageService, groupMemberService: groupMemberService, groupEventService: groupEventService, groupPostService: groupPostService}
 }
 
 func (h *GroupHandler) CreateGroup(w http.ResponseWriter, r *http.Request) {
@@ -65,13 +66,6 @@ func (h *GroupHandler) CreateGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Add creator as group member
-	_, err = h.groupMemberService.AddGroupMember(newGroup.ID, group.CreatorID, "admin")
-	if err != nil {
-		// Log error but don't fail the group creation
-		fmt.Printf("Warning: Failed to add creator as group member: %v\n", err)
-	}
-
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(newGroup); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
@@ -79,36 +73,27 @@ func (h *GroupHandler) CreateGroup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *GroupHandler) SendJoinRequest(w http.ResponseWriter, r *http.Request) {
-	groupIDStr := r.PathValue("groupID")
-	groupID, err := strconv.Atoi(groupIDStr)
-	if err != nil {
-		http.Error(w, "Invalid group ID", http.StatusBadRequest)
-		return
-	}
+	publicID := r.PathValue("groupID")
 
 	userID, ok := r.Context().Value(utils.User_id).(int64)
 	if !ok {
-		http.Error(w, "User ID not found in context", http.StatusUnauthorized)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	request, err := h.groupRequestService.SendJoinRequest(int64(groupID), int64(userID))
+	_, err := h.groupRequestService.SendJoinRequest(publicID, userID)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to send join request: %v", err), http.StatusInternalServerError)
+		if err.Error() == "cannot send join request to a private group" || err.Error() == "user is already the group creator" || err.Error() == "user is already a member of this group" {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 		return
-	}
-
-	resp := struct {
-		Request *models.GroupRequest `json:"request"`
-		Message string               `json:"message"`
-	}{
-		Request: request,
-		Message: "Join request approved",
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
+	if err := json.NewEncoder(w).Encode(map[string]string{"message": "Successfully joined group"}); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
 }
 
@@ -167,12 +152,7 @@ func (h *GroupHandler) RejectJoinRequest(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *GroupHandler) SendGroupChatMessage(w http.ResponseWriter, r *http.Request) {
-	groupIDStr := r.PathValue("groupID")
-	groupID, err := strconv.Atoi(groupIDStr)
-	if err != nil {
-		http.Error(w, "Invalid group ID", http.StatusBadRequest)
-		return
-	}
+	publicID := r.PathValue("groupID")
 
 	senderID, ok := r.Context().Value(utils.User_id).(int64)
 	if !ok {
@@ -188,7 +168,7 @@ func (h *GroupHandler) SendGroupChatMessage(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	message, err := h.groupChatMessageService.SendGroupChatMessage(int64(groupID), int64(senderID), requestBody.Content)
+	message, err := h.groupChatMessageService.SendGroupChatMessage(publicID, senderID, requestBody.Content)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to send message: %v", err), http.StatusInternalServerError)
 		return
@@ -202,12 +182,7 @@ func (h *GroupHandler) SendGroupChatMessage(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *GroupHandler) GetGroupChatMessages(w http.ResponseWriter, r *http.Request) {
-	groupIDStr := r.PathValue("groupID")
-	groupID, err := strconv.Atoi(groupIDStr)
-	if err != nil {
-		http.Error(w, "Invalid group ID", http.StatusBadRequest)
-		return
-	}
+	publicID := r.PathValue("groupID")
 
 	userID, ok := r.Context().Value(utils.User_id).(int64)
 	if !ok {
@@ -227,7 +202,7 @@ func (h *GroupHandler) GetGroupChatMessages(w http.ResponseWriter, r *http.Reque
 		offset = 0 // Default offset
 	}
 
-	messages, err := h.groupChatMessageService.GetGroupChatMessages(int64(groupID), int64(userID), limit, offset)
+	messages, err := h.groupChatMessageService.GetGroupChatMessages(publicID, userID, limit, offset)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to get messages: %v", err), http.StatusInternalServerError)
 		return
@@ -259,6 +234,7 @@ func (h *GroupHandler) SearchPublicGroups(w http.ResponseWriter, r *http.Request
 func (h *GroupHandler) GetAllPublicGroups(w http.ResponseWriter, r *http.Request) {
 	groups, err := h.groupService.GetAllPublicGroups()
 	if err != nil {
+		// fmt.Printf("Error getting public groups: %v\n", err)
 		http.Error(w, fmt.Sprintf("Failed to get public groups: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -279,6 +255,7 @@ func (h *GroupHandler) GetUserGroups(w http.ResponseWriter, r *http.Request) {
 
 	groups, err := h.groupService.GetUserGroups(userID)
 	if err != nil {
+		// fmt.Printf("Error getting user groups for user %d: %v\n", userID, err)
 		http.Error(w, fmt.Sprintf("Failed to get user groups: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -291,35 +268,24 @@ func (h *GroupHandler) GetUserGroups(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *GroupHandler) GetGroupByID(w http.ResponseWriter, r *http.Request) {
-	groupIDStr := r.PathValue("groupID")
-	groupID, err := strconv.Atoi(groupIDStr)
+	groupID := r.PathValue("groupID")
+	group, err := h.groupService.GetGroupByID(groupID)
 	if err != nil {
-		http.Error(w, "Invalid group ID", http.StatusBadRequest)
-		return
-	}
-
-	group, err := h.groupService.GetGroupByID(int64(groupID))
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to get group: %v", err), http.StatusInternalServerError)
+		http.Error(w, "Group not found", http.StatusNotFound)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(group); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		return
 	}
 }
 
 func (h *GroupHandler) GetGroupEvents(w http.ResponseWriter, r *http.Request) {
-	groupIDStr := r.PathValue("groupID")
-	groupID, err := strconv.Atoi(groupIDStr)
-	if err != nil {
-		http.Error(w, "Invalid group ID", http.StatusBadRequest)
-		return
-	}
+	publicID := r.PathValue("groupID")
 
-	events, err := h.groupEventService.GetGroupEvents(int64(groupID))
+	events, err := h.groupEventService.GetGroupEvents(publicID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to get group events: %v", err), http.StatusInternalServerError)
 		return
@@ -332,15 +298,40 @@ func (h *GroupHandler) GetGroupEvents(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *GroupHandler) GetGroupMembers(w http.ResponseWriter, r *http.Request) {
-	groupIDStr := r.PathValue("groupID")
-	groupID, err := strconv.Atoi(groupIDStr)
-	if err != nil {
-		http.Error(w, "Invalid group ID", http.StatusBadRequest)
+func (h *GroupHandler) CreateGroupEvent(w http.ResponseWriter, r *http.Request) {
+	groupPublicID := r.PathValue("groupID")
+
+	creatorID, ok := r.Context().Value(utils.User_id).(int64)
+	if !ok {
+		http.Error(w, "User ID not found in context", http.StatusUnauthorized)
 		return
 	}
 
-	members, err := h.groupMemberService.GetGroupMembers(int64(groupID))
+	var event models.GroupEvent
+	if err := json.NewDecoder(r.Body).Decode(&event); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	event.GroupPubID = groupPublicID
+	event.CreatorID = creatorID
+
+	newEvent, err := h.groupEventService.CreateGroupEvent(&event)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to create group event: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(newEvent); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+func (h *GroupHandler) GetGroupMembers(w http.ResponseWriter, r *http.Request) {
+	publicID := r.PathValue("groupID")
+
+	members, err := h.groupMemberService.GetGroupMembers(publicID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to get group members: %v", err), http.StatusInternalServerError)
 		return
@@ -349,6 +340,66 @@ func (h *GroupHandler) GetGroupMembers(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(members); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *GroupHandler) GetGroupStats(w http.ResponseWriter, r *http.Request) {
+	publicID := r.PathValue("groupID")
+
+	userID, ok := r.Context().Value(utils.User_id).(int64)
+	if !ok {
+		http.Error(w, "User ID not found in context", http.StatusUnauthorized)
+		return
+	}
+
+	// Get member count
+	members, err := h.groupMemberService.GetGroupMembers(publicID)
+	if err != nil {
+		members = []*models.User{}
+	}
+
+	// Get posts count by fetching all posts
+	posts, err := h.groupPostService.GetGroupPosts(publicID, userID, 1000, 0)
+	if err != nil {
+		posts = []*models.GroupPost{}
+	}
+
+	// Get events count
+	events, err := h.groupEventService.GetGroupEvents(publicID)
+	if err != nil {
+		events = []*models.GroupEvent{}
+	}
+
+	stats := map[string]interface{}{
+		"members": len(members),
+		"posts":   len(posts),
+		"events":  len(events),
+	}
+
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(stats); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+func (h *GroupHandler) LeaveGroup(w http.ResponseWriter, r *http.Request) {
+	groupID := r.PathValue("groupID")
+	userID, ok := r.Context().Value(utils.User_id).(int64)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	err := h.groupService.LeaveGroup(groupID, userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(map[string]string{"message": "Left group successfully"}); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		return
 	}
 }
