@@ -13,6 +13,7 @@ DROP TABLE IF EXISTS Event_Responses;
 -- Create unified Groups table
 CREATE TABLE Groups (
     id TEXT PRIMARY KEY,
+    public_id TEXT UNIQUE,
     type TEXT NOT NULL CHECK (type IN ('group', 'member', 'request', 'event', 'post', 'comment')),
     group_id TEXT,
     user_id INTEGER,
@@ -30,6 +31,7 @@ CREATE TABLE Groups (
 );
 
 -- Create performance indexes
+CREATE INDEX idx_groups_public_id ON Groups(public_id);
 CREATE INDEX idx_groups_type ON Groups(type);
 CREATE INDEX idx_groups_group_id ON Groups(group_id);
 CREATE INDEX idx_groups_user_id ON Groups(user_id);
