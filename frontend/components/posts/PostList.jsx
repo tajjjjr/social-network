@@ -12,7 +12,7 @@ import { profileAPI } from '../../lib/api';
 import { postAPI } from '../../lib/api';
 import Image from 'next/image';
 
-const PostList = ({ refreshTrigger, user, posts: initialPosts, profileView = false }) => {
+const PostList = ({ refreshTrigger, user, posts: initialPosts, profileView = false, isGroupPost = false, groupId = null }) => {
   const router = useRouter();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +42,36 @@ const PostList = ({ refreshTrigger, user, posts: initialPosts, profileView = fal
     setError('');
 
     try {
-      const result = await postAPI.fetchPostsPaginated(pageNum, 10);
+      let result;
+      if (isGroupPost && groupId) {
+        if (!groupId || typeof groupId !== 'string' || groupId.length === 0) {
+          setError('Invalid group ID');
+          setLoading(false);
+          return;
+        }
+        // Fetch group posts
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/groups/${groupId}/posts?limit=10&offset=${(pageNum - 1) * 10}`,
+          { credentials: 'include' }
+        );
+        
+        if (response.ok) {
+          const newPosts = await response.json();
+          const postsArray = newPosts || [];
+          result = {
+            success: true,
+            data: {
+              posts: postsArray,
+              pagination: { hasMore: postsArray.length === 10 }
+            }
+          };
+        } else {
+          result = { success: false, error: 'Failed to load group posts' };
+        }
+      } else {
+        // Fetch regular posts
+        result = await postAPI.fetchPostsPaginated(pageNum, 10);
+      }
 
       if (result.success) {
         const { posts: newPosts, pagination } = result.data;
@@ -69,10 +98,21 @@ const PostList = ({ refreshTrigger, user, posts: initialPosts, profileView = fal
     if (initialPosts) {
       setPosts(initialPosts);
       setLoading(false);
-    } else {
+    } else if (!isGroupPost) {
+      // Only load regular posts if not in group context
       loadPosts();
+    } else {
+      // For group posts, don't auto-load - GroupPosts component handles this
+      setLoading(false);
     }
-  }, [refreshTrigger, initialPosts]);
+  }, [refreshTrigger, initialPosts, isGroupPost]);
+
+  // Update posts when initialPosts changes (for GroupPosts)
+  useEffect(() => {
+    if (isGroupPost && initialPosts) {
+      setPosts(initialPosts);
+    }
+  }, [initialPosts, isGroupPost]);
 
   const loadMorePosts = useCallback(() => {
     if (loadingRef.current || loadingMore || !hasMore) return;
@@ -185,7 +225,31 @@ const PostList = ({ refreshTrigger, user, posts: initialPosts, profileView = fal
 
     setEditLoading(true);
     try {
-      const result = await postAPI.updatePost(postId, editContent, editImage);
+      let result;
+      if (isGroupPost && groupId) {
+        // Update group post
+        const formData = new FormData();
+        formData.append('content', editContent);
+        if (editImage) {
+          formData.append('image', editImage);
+        }
+        
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/groups/${groupId}/posts/${postId}`, {
+          method: 'PUT',
+          credentials: 'include',
+          body: formData
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          result = { success: true, data };
+        } else {
+          result = { success: false, error: 'Failed to update group post' };
+        }
+      } else {
+        result = await postAPI.updatePost(postId, editContent, editImage);
+      }
+      
       if (result.success) {
         // Update the post in the local state
         setPosts(prev => prev.map(post =>
@@ -196,7 +260,6 @@ const PostList = ({ refreshTrigger, user, posts: initialPosts, profileView = fal
         setEditImage(null);
       } else {
         console.error('Failed to update post:', result.error);
-        // You could add a toast notification here
       }
     } catch (error) {
       console.error('Error updating post:', error);
@@ -208,7 +271,23 @@ const PostList = ({ refreshTrigger, user, posts: initialPosts, profileView = fal
   // Handle delete post
   const handleDeletePost = async (postId) => {
     try {
-      const result = await postAPI.deletePost(postId);
+      let result;
+      if (isGroupPost && groupId) {
+        // Delete group post
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/groups/${groupId}/posts/${postId}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          result = { success: true };
+        } else {
+          result = { success: false, error: 'Failed to delete group post' };
+        }
+      } else {
+        result = await postAPI.deletePost(postId);
+      }
+      
       if (result.success) {
         // Remove the post from the local state
         setPosts(prev => prev.filter(post => post.id !== postId));
@@ -216,7 +295,6 @@ const PostList = ({ refreshTrigger, user, posts: initialPosts, profileView = fal
         setOpenDropdown(null);
       } else {
         console.error('Failed to delete post:', result.error);
-        // You could add a toast notification here
       }
     } catch (error) {
       console.error('Error deleting post:', error);
@@ -298,10 +376,11 @@ const PostList = ({ refreshTrigger, user, posts: initialPosts, profileView = fal
               <div className="relative">
                 <Image
                   src={profileAPI.fetchProfileImage(post.author?.avatar || '')}
-                  alt={post.author?.nickname || `${post.author?.first_name || ''} ${post.author?.last_name || ''}`.trim() || 'User'}
+                  alt={post.author?.nickname || `${post.author?.firstname || ''} ${post.author?.lastname || ''}`.trim() || 'User'}
                   width={40}
                   height={40}
                   className="w-10 h-10 rounded-full"
+                  priority // Added for LCP
                 />
                 <div className="absolute -bottom-1 -right-1">
                   <VerifiedBadge />
@@ -310,7 +389,7 @@ const PostList = ({ refreshTrigger, user, posts: initialPosts, profileView = fal
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-medium break-words" style={{ color: 'var(--primary-text)' }}>
-                    {post.author?.nickname || `${post.author?.first_name || ''} ${post.author?.last_name || ''}`.trim() || 'User'}
+                    {post.author?.nickname || `${post.author?.firstname || ''} ${post.author?.lastname || ''}`.trim() || 'User'}
                   </span>
                   <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--secondary-text)' }}>
                     {React.createElement(getPrivacyIcon(post.privacy), { className: "w-3 h-3" })}
@@ -346,7 +425,7 @@ const PostList = ({ refreshTrigger, user, posts: initialPosts, profileView = fal
                   style={{ backgroundColor: 'var(--primary-background)', border: '1px solid var(--border-color)' }}
                 >
                   <div className="py-1">
-                    {user && user.id === post.user_id ? (
+                    {user && user.id === (post.user_id || post.UserID) ? (
                       <>
                         {/* Edit Option */}
                         <button
@@ -385,7 +464,7 @@ const PostList = ({ refreshTrigger, user, posts: initialPosts, profileView = fal
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleViewProfile(post.user_id);
+                            handleViewProfile(post.user_id || post.UserID);
                           }}
                           className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 transition-colors"
                           style={{ color: 'var(--primary-text)' }}
@@ -398,7 +477,7 @@ const PostList = ({ refreshTrigger, user, posts: initialPosts, profileView = fal
 
                         {/* Follow Option */}
                         <button
-                          onClick={() => profileAPI.follow(post.user_id)}
+                          onClick={() => profileAPI.follow(post.user_id || post.UserID)}
                           className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 transition-colors"
                           style={{ color: 'var(--primary-text)' }}
                           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-background)'}

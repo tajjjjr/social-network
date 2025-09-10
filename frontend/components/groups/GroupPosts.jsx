@@ -3,32 +3,42 @@
 import { useState, useEffect } from 'react';
 import PostCreation from '../posts/PostCreation';
 import PostList from '../posts/PostList';
+import { groupAPI } from '../../lib/api';
 
-export default function GroupPosts({ groupId }) {
+export default function GroupPosts({ groupId, user, group }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [error, setError] = useState(null);
+  const [isMember, setIsMember] = useState(false);
 
   const fetchPosts = async (pageNum = 1, reset = false) => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/groups/${groupId}/posts?limit=10&offset=${(pageNum - 1) * 10}`,
-        { credentials: 'include' }
-      );
+      const result = await groupAPI.getGroupPosts(groupId, 10, (pageNum - 1) * 10);
       
-      if (response.ok) {
-        const newPosts = await response.json();
-        const postsArray = newPosts || [];
+      if (result.success) {
+        const postsArray = result.data || [];
         if (reset) {
           setPosts(postsArray);
         } else {
           setPosts(prev => [...prev, ...postsArray]);
         }
         setHasMore(postsArray.length === 10);
+        setIsMember(true);
+        setError(null);
+      } else {
+        if (result.error.includes('403') || result.error.includes('Forbidden')) {
+          setIsMember(false);
+          setError('You must be a group member to view posts');
+          setPosts([]);
+        } else {
+          setError('Failed to load posts');
+        }
       }
     } catch (error) {
       console.error('Error fetching group posts:', error);
+      setError('Failed to load posts');
     } finally {
       setLoading(false);
     }
@@ -36,13 +46,20 @@ export default function GroupPosts({ groupId }) {
 
   useEffect(() => {
     if (groupId) {
+      // Check if user is creator (always a member)
+      if (user && group && user.id === group.creator_id) {
+        setIsMember(true);
+      }
       fetchPosts(1, true);
     }
-  }, [groupId]);
+  }, [groupId, user, group]);
 
-  const handlePostCreated = () => {
-    fetchPosts(1, true);
-    setPage(1);
+  const handlePostCreated = (postData, isGroupContext) => {
+    // Only refresh if this is actually a group post
+    if (isGroupContext) {
+      fetchPosts(1, true);
+      setPage(1);
+    }
   };
 
   const loadMore = () => {
@@ -51,19 +68,46 @@ export default function GroupPosts({ groupId }) {
     fetchPosts(nextPage, false);
   };
 
+  if (!groupId || typeof groupId !== 'string' || groupId.length === 0) {
+    setError('Invalid group ID');
+    setLoading(false);
+    return;
+  }
+
+  if (error && !isMember) {
+    return (
+      <div className="space-y-6">
+        <div 
+          className="rounded-xl p-8 text-center"
+          style={{ backgroundColor: 'var(--secondary-background)' }}
+        >
+          <h3 className="text-lg font-medium mb-2" style={{ color: 'var(--primary-text)' }}>
+            Join the group to see posts
+          </h3>
+          <p style={{ color: 'var(--secondary-text)' }}>
+            You need to be a member of this group to view and create posts.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Post Creation */}
-      <div 
-        className="rounded-xl p-6"
-        style={{ backgroundColor: 'var(--secondary-background)' }}
-      >
-        <PostCreation 
-          onPostCreated={handlePostCreated}
-          isGroupPost={true}
-          groupId={groupId}
-        />
-      </div>
+      {/* Post Creation - Only show for members */}
+      {isMember && (
+        <div 
+          className="rounded-xl p-6"
+          style={{ backgroundColor: 'var(--secondary-background)' }}
+        >
+          <PostCreation 
+            user={user}
+            onPostCreated={handlePostCreated}
+            isGroupPost={true}
+            groupId={groupId}
+          />
+        </div>
+      )}
 
       {/* Posts Feed */}
       {loading ? (
@@ -73,9 +117,11 @@ export default function GroupPosts({ groupId }) {
       ) : (
         <div className="space-y-6">
           <PostList 
-            posts={posts} 
+            initialPosts={posts}
+            user={user}
             onPostUpdate={handlePostCreated}
             isGroupPost={true}
+            groupId={groupId}
           />
           
           {hasMore && posts.length > 0 && (

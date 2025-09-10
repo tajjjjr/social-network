@@ -17,41 +17,52 @@ const getMemberAvatar = (avatar) => {
   return `${process.env.NEXT_PUBLIC_API_URL}/avatar?avatar=${encodeURIComponent(avatar)}`;
 };
 
-export default function GroupHeader({ group }) {
+export default function GroupHeader({ group, user }) {
   const [stats, setStats] = useState({ members: 0, posts: 0, events: 0 });
   const [loading, setLoading] = useState(true);
+  const [isMember, setIsMember] = useState(false);
+  const [membershipLoading, setMembershipLoading] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmationAction, setConfirmationAction] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchGroupStats = async () => {
       try {
-        const [membersRes, postsRes, eventsRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/groups/${group.id}/members`, { credentials: 'include' }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/groups/${group.id}/posts?limit=1`, { credentials: 'include' }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/groups/${group.id}/events`, { credentials: 'include' })
+        const groupId = group?.id;
+
+        if (!groupId || typeof groupId !== 'string' || groupId.length === 0) {
+          setError('Invalid group ID');
+          setLoading(false);
+          return;
+        }
+
+        const [statsRes, membersRes] = await Promise.all([
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/groups/${groupId}/stats`, { credentials: 'include' }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/groups/${groupId}/members`, { credentials: 'include' })
         ]);
 
+        let stats = { members: 0, posts: 0, events: 0 };
         let members = [];
-        let events = [];
-        let postsCount = 0;
+        
+        if (statsRes.ok) {
+          stats = await statsRes.json();
+        }
         
         if (membersRes.ok) {
           members = await membersRes.json();
         }
         
-        if (eventsRes.ok) {
-          events = await eventsRes.json();
-        }
-        
-        if (postsRes.ok) {
-          const postsData = await postsRes.json();
-          postsCount = Array.isArray(postsData) ? postsData.length : 0;
+        // Check if current user is a member (creator is always a member)
+        if (user) {
+          if (user.id === group.creator_id) {
+            setIsMember(true);
+          } else if (members && Array.isArray(members)) {
+            setIsMember(members.some(member => member.id === user.id));
+          }
         }
 
-        setStats({
-          members: (members || []).length,
-          posts: postsCount,
-          events: (events || []).length
-        });
+        setStats(stats);
       } catch (error) {
         console.error('Error fetching group stats:', error);
       } finally {
@@ -126,15 +137,37 @@ export default function GroupHeader({ group }) {
             
             {/* Action Buttons */}
             <div className="flex gap-3 pb-4">
-              <button
-                className="px-6 py-2 rounded-lg font-medium"
-                style={{
-                  backgroundColor: 'var(--primary-accent)',
-                  color: 'white'
-                }}
-              >
-                Join Group
-              </button>
+              {user && (
+                user.id === group.creator_id ? (
+                  <button
+                    className="px-6 py-2 rounded-lg font-medium"
+                    style={{
+                      backgroundColor: 'var(--secondary-background)',
+                      color: 'var(--primary-text)',
+                      border: '1px solid var(--tertiary-text)'
+                    }}
+                    disabled
+                  >
+                    Group Admin
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setConfirmationAction(isMember ? 'leave' : 'join');
+                      setShowConfirmation(true);
+                    }}
+                    disabled={membershipLoading}
+                    className="px-6 py-2 rounded-lg font-medium"
+                    style={{
+                      backgroundColor: isMember ? 'var(--warning-color)' : 'var(--primary-accent)',
+                      color: 'white',
+                      opacity: membershipLoading ? 0.6 : 1
+                    }}
+                  >
+                    {membershipLoading ? 'Loading...' : (isMember ? 'Leave Group' : 'Join Group')}
+                  </button>
+                )
+              )}
               <button
                 className="px-6 py-2 rounded-lg font-medium border"
                 style={{
@@ -149,6 +182,94 @@ export default function GroupHeader({ group }) {
           </div>
         </div>
       </div>
+      
+      {/* Confirmation Modal */}
+      {showConfirmation && (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+          <div className="rounded-lg p-6 max-w-md w-full mx-4" style={{ backgroundColor: 'var(--primary-background)' }}>
+            <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--primary-text)' }}>
+              {confirmationAction === 'join' ? 'Join Group' : 'Leave Group'}
+            </h3>
+            <p className="mb-6" style={{ color: 'var(--secondary-text)' }}>
+              {confirmationAction === 'join' 
+                ? `Are you sure you want to join "${group.title}"?`
+                : `Are you sure you want to leave "${group.title}"?`
+              }
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowConfirmation(false)}
+                className="px-4 py-2 rounded-lg"
+                style={{ backgroundColor: 'var(--secondary-background)', color: 'var(--primary-text)' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleMembershipAction}
+                className="px-4 py-2 rounded-lg"
+                style={{
+                  backgroundColor: confirmationAction === 'join' ? 'var(--primary-accent)' : 'var(--warning-color)',
+                  color: 'white'
+                }}
+              >
+                {confirmationAction === 'join' ? 'Join' : 'Leave'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
+  
+  async function handleMembershipAction() {
+    setMembershipLoading(true);
+    setShowConfirmation(false);
+    
+    try {
+      if (confirmationAction === 'join') {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/groups/${group.id}/join-request`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          setIsMember(true);
+          // Refresh stats
+          const statsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/groups/${group.id}/stats`, { credentials: 'include' });
+          if (statsRes.ok) {
+            const newStats = await statsRes.json();
+            setStats(newStats);
+          }
+        } else {
+          const errorData = await response.json().catch(() => ({ message: 'Failed to join group' }));
+          console.error('Join group error:', errorData);
+          alert(errorData.message || 'Failed to join group');
+        }
+      } else {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/groups/${group.id}/leave`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          setIsMember(false);
+          // Refresh stats
+          const statsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/groups/${group.id}/stats`, { credentials: 'include' });
+          if (statsRes.ok) {
+            const newStats = await statsRes.json();
+            setStats(newStats);
+          }
+        } else {
+          const errorData = await response.json().catch(() => ({ message: 'Failed to leave group' }));
+          console.error('Leave group error:', errorData);
+          alert(errorData.message || 'Failed to leave group');
+        }
+      }
+    } catch (error) {
+      console.error('Error updating membership:', error);
+      alert('Network error occurred');
+    } finally {
+      setMembershipLoading(false);
+    }
+  }
 }

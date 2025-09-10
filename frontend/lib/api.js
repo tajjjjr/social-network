@@ -388,4 +388,114 @@ export const groupAPI = {
     if (!avatar) return '/default-group-avatar.png';
     return `${API_BASE}/api/image?avatar=${encodeURIComponent(avatar)}`;
   },
+  
+  // Group Posts
+  createGroupPost: async (groupId, formData) => {
+    try {
+      const response = await fetch(`${API_BASE}/groups/${groupId}/posts`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || 'Failed to create group post'
+      };
+    }
+  },
+  
+  getGroupPosts: async (groupId, limit = 10, offset = 0) => {
+    try {
+      const data = await apiCall(`/groups/${groupId}/posts?limit=${limit}&offset=${offset}`);
+      return { success: true, data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || 'Failed to fetch group posts'
+      };
+    }
+  },
+  
+  updateGroupPost: async (groupId, postId, content, image) => {
+    try {
+      const formData = new FormData();
+      formData.append('content', content);
+      if (image) {
+        formData.append('image', image);
+      }
+      
+      const response = await fetch(`${API_BASE}/groups/${groupId}/posts/${postId}`, {
+        method: 'PUT',
+        credentials: 'include',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || 'Failed to update group post'
+      };
+    }
+  },
+  
+  deleteGroupPost: async (groupId, postId) => {
+    try {
+      const data = await apiCall(`/groups/${groupId}/posts/${postId}`, { method: 'DELETE' });
+      return { success: true, data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || 'Failed to delete group post'
+      };
+    }
+  },
+  
+  // Group Post Comments
+  createGroupPostComment: async (groupId, postId, formData) => {
+    try {
+      const response = await fetch(`${API_BASE}/groups/${groupId}/posts/${postId}/comments`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || 'Failed to create group post comment'
+      };
+    }
+  },
+  
+  getGroupPostComments: async (groupId, postId) => {
+    try {
+      const data = await apiCall(`/groups/${groupId}/posts/${postId}/comments`);
+      return { success: true, data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || 'Failed to fetch group post comments'
+      };
+    }
+  }
 };

@@ -9,7 +9,7 @@ import {
   Users,
   Lock,
 } from "lucide-react";
-import { postAPI } from "../../lib/api";
+import { postAPI, groupAPI } from "../../lib/api";
 import UserSearch from "./UserSearch";
 import { profileAPI } from "../../lib/api";
 import Image from 'next/image';
@@ -26,7 +26,7 @@ const PostCreation = ({ user, onPostCreated, isGroupPost = false, groupId = null
   const [showPrivacyDropdown, setShowPrivacyDropdown] = useState(false);
   const fileInputRef = useRef(null);
 
-  const privacyOptions = [
+  const privacyOptions = isGroupPost ? [] : [
     {
       value: "public",
       label: "Public",
@@ -108,12 +108,16 @@ const PostCreation = ({ user, onPostCreated, isGroupPost = false, groupId = null
     try {
       const formData = new FormData();
       formData.append("content", content.trim());
-      formData.append("privacy", privacy);
-
-      // Add selected users for private posts
-      if (privacy === "private" && selectedUsers.length > 0) {
-        const viewerIds = selectedUsers.map(user => user.id).join(",");
-        formData.append("viewers", viewerIds);
+      
+      // Only add privacy and viewers for regular posts
+      if (!isGroupPost) {
+        formData.append("privacy", privacy);
+        
+        // Add selected users for private posts
+        if (privacy === "private" && selectedUsers.length > 0) {
+          const viewerIds = selectedUsers.map(user => user.id).join(",");
+          formData.append("viewers", viewerIds);
+        }
       }
 
       if (selectedImage) {
@@ -122,20 +126,7 @@ const PostCreation = ({ user, onPostCreated, isGroupPost = false, groupId = null
 
       let result;
       if (isGroupPost && groupId) {
-        // Create group post
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/groups/${groupId}/posts`, {
-          method: 'POST',
-          credentials: 'include',
-          body: formData
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          result = { success: true, data };
-        } else {
-          const errorData = await response.json();
-          result = { success: false, error: errorData.message || 'Failed to create group post' };
-        }
+        result = await groupAPI.createGroupPost(groupId, formData);
       } else {
         result = await postAPI.createPost(formData);
       }
@@ -143,17 +134,19 @@ const PostCreation = ({ user, onPostCreated, isGroupPost = false, groupId = null
       if (result.success) {
         // Reset form
         setContent("");
-        setPrivacy("public");
-        setSelectedUsers([]);
+        if (!isGroupPost) {
+          setPrivacy("public");
+          setSelectedUsers([]);
+        }
         setSelectedImage(null);
         setImagePreview(null);
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
         }
 
-        // Notify parent component
+        // Notify parent component with context awareness
         if (onPostCreated) {
-          onPostCreated(result.data);
+          onPostCreated(result.data, isGroupPost);
         }
       } else {
         setError(result.error);
@@ -166,7 +159,10 @@ const PostCreation = ({ user, onPostCreated, isGroupPost = false, groupId = null
   };
 
   const getCurrentPrivacyOption = () => {
-    return privacyOptions.find((option) => option.value === privacy);
+    if (isGroupPost || privacyOptions.length === 0) {
+      return { value: "group", label: "Group", icon: Users };
+    }
+    return privacyOptions.find((option) => option.value === privacy) || privacyOptions[0];
   };
 
   return (
@@ -191,7 +187,7 @@ const PostCreation = ({ user, onPostCreated, isGroupPost = false, groupId = null
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Tell your friends about your thoughts..."
+              placeholder={isGroupPost ? "Share something with the group..." : "Tell your friends about your thoughts..."}
               className="w-full focus:outline-none text-sm resize-none min-h-[60px] break-words overflow-wrap-anywhere"
               style={{ backgroundColor: 'transparent', color: 'var(--primary-text)', '--placeholder-color': 'var(--secondary-text)' }}
               rows="3"
@@ -224,8 +220,8 @@ const PostCreation = ({ user, onPostCreated, isGroupPost = false, groupId = null
           </div>
         </div>
 
-        {/* User Search for Private Posts */}
-        {privacy === "private" && (
+        {/* User Search for Private Posts - Only show for regular posts */}
+        {!isGroupPost && privacy === "private" && (
           <div className="mb-4">
             <label className="block text-sm font-medium mb-2" style={{ color: 'var(--secondary-text)' }}>
               Select people who can see this post:
@@ -293,54 +289,56 @@ const PostCreation = ({ user, onPostCreated, isGroupPost = false, groupId = null
               <span>Poll</span>
             </button>
 
-            {/* Privacy Selector */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowPrivacyDropdown(!showPrivacyDropdown)}
-                className="flex items-center gap-2 text-sm py-1.5 px-3 rounded-lg cursor-pointer transition-colors"
-                style={{ color: "var(--secondary-text)" }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-background)'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                disabled={isSubmitting}
-              >
-                {React.createElement(getCurrentPrivacyOption().icon, {
-                  className: "w-4 h-4",
-                })}
-                <span>{getCurrentPrivacyOption().label}</span>
-              </button>
+            {/* Privacy Selector - Only show for regular posts */}
+            {!isGroupPost && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowPrivacyDropdown(!showPrivacyDropdown)}
+                  className="flex items-center gap-2 text-sm py-1.5 px-3 rounded-lg cursor-pointer transition-colors"
+                  style={{ color: "var(--secondary-text)" }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-background)'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  disabled={isSubmitting}
+                >
+                  {React.createElement(getCurrentPrivacyOption().icon, {
+                    className: "w-4 h-4",
+                  })}
+                  <span>{getCurrentPrivacyOption().label}</span>
+                </button>
 
-              {/* Privacy Dropdown */}
-              {showPrivacyDropdown && (
-                <div className="absolute bottom-full left-0 mb-2 rounded-lg shadow-lg min-w-[200px] z-10"
-                  style={{ backgroundColor: 'var(--secondary-background)', border: '1px solid var(--border-color)' }}>
-                  {privacyOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => handlePrivacyChange(option.value)}
-                      className={`w-full text-left px-3 py-2 first:rounded-t-lg last:rounded-b-lg transition-colors ${privacy === option.value ? "" : ""}`}
-                      style={privacy === option.value ? { backgroundColor: 'var(--hover-background)' } : {}}
-                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-background)'}
-                      onMouseOut={(e) => e.currentTarget.style.backgroundColor = privacy === option.value ? 'var(--hover-background)' : 'transparent'}
-                      disabled={isSubmitting}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        {React.createElement(option.icon, {
-                          className: "w-4 h-4",
-                        })}
-                        <span className="text-sm font-medium" style={{ color: 'var(--primary-text)' }}>
-                          {option.label}
-                        </span>
-                      </div>
-                      <div className="text-xs ml-6" style={{ color: 'var(--secondary-text)' }}>
-                        {option.description}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                {/* Privacy Dropdown */}
+                {showPrivacyDropdown && (
+                  <div className="absolute bottom-full left-0 mb-2 rounded-lg shadow-lg min-w-[200px] z-10"
+                    style={{ backgroundColor: 'var(--secondary-background)', border: '1px solid var(--border-color)' }}>
+                    {privacyOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => handlePrivacyChange(option.value)}
+                        className={`w-full text-left px-3 py-2 first:rounded-t-lg last:rounded-b-lg transition-colors ${privacy === option.value ? "" : ""}`}
+                        style={privacy === option.value ? { backgroundColor: 'var(--hover-background)' } : {}}
+                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-background)'}
+                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = privacy === option.value ? 'var(--hover-background)' : 'transparent'}
+                        disabled={isSubmitting}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          {React.createElement(option.icon, {
+                            className: "w-4 h-4",
+                          })}
+                          <span className="text-sm font-medium" style={{ color: 'var(--primary-text)' }}>
+                            {option.label}
+                          </span>
+                        </div>
+                        <div className="text-xs ml-6" style={{ color: 'var(--secondary-text)' }}>
+                          {option.description}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Post Button */}
