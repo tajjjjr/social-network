@@ -76,7 +76,7 @@ type Manager struct {
 - `Register(c *Client)`: Add new client connection
 - `Unregister(id int64)`: Remove client connection
 - `SendToUser(id int64, msg []byte)`: Send message to specific user
-- `BroadcastToGroup(sender int64, groupID string, msg []byte)`: Broadcast to group members
+- `BroadcastToGroup(sender int64, groupID int64, msg []byte)`: Broadcast to group members
 - `BroadcastToAll(msg []byte)`: Send to all connected users
 - `IsOnline(userID int64) bool`: Check user online status
 
@@ -113,7 +113,7 @@ Handles user authentication via session cookies.
 #### GroupMemberFetcher
 ```go
 type GroupMemberFetcher interface {
-    GetGroupMemberIDs(groupID string) ([]int64, error)
+    GetGroupMemberIDs(groupID int64) ([]int64, error)
 }
 ```
 Retrieves group membership for message broadcasting.
