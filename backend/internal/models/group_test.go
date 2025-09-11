@@ -7,7 +7,7 @@ import (
 
 func TestGroupModel(t *testing.T) {
 	group := Group{
-		ID:          "group-1",
+		ID:          int64(1),
 		PublicID:    "group-1",
 		Title:       "Test Group",
 		Description: "This is a test group.",
@@ -16,8 +16,8 @@ func TestGroupModel(t *testing.T) {
 		CreatedAt:   time.Now(),
 	}
 
-	if group.ID != "group-1" {
-		t.Errorf("Expected ID 'group-1', got %s", group.ID)
+	if group.ID != int64(1) {
+		t.Errorf("Expected ID 1, got %d", group.ID)
 	}
 	if group.PublicID != "group-1" {
 		t.Errorf("Expected PublicID 'group-1', got %s", group.PublicID)
