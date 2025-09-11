@@ -104,7 +104,7 @@ func TestCreateGroupPost(t *testing.T) {
 
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
-		writer.WriteField("content", "Test post content")
+		_ = writer.WriteField("content", "Test post content")
 		writer.Close()
 
 		req, err := http.NewRequest("POST", "/groups/1/posts", body)
@@ -145,7 +145,7 @@ func TestCreateGroupPost(t *testing.T) {
 
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
-		writer.WriteField("content", "Test post content")
+		_ = writer.WriteField("content", "Test post content")
 		writer.Close()
 
 		req, err := http.NewRequest("POST", "/groups/1/posts", body)
@@ -172,7 +172,7 @@ func TestCreateGroupPost(t *testing.T) {
 
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
-		writer.WriteField("content", "Test post content")
+		_ = writer.WriteField("content", "Test post content")
 		writer.Close()
 
 		req, err := http.NewRequest("POST", "/groups/1/posts", body)

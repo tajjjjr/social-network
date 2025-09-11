@@ -3,8 +3,8 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 
 	"github.com/google/uuid"
@@ -22,7 +22,7 @@ func Migrate(db *sql.DB) {
 	for _, migration := range migrations {
 		p := filepath.Join("pkg/db/migrations", migration)
 		fmt.Printf("Applying migration: %s\n", p)
-		stmt, err := ioutil.ReadFile(p)
+		stmt, err := os.ReadFile(p)
 		if err != nil {
 			log.Fatalf("failed to read migration file %s: %v", p, err)
 		}
@@ -34,7 +34,7 @@ func Migrate(db *sql.DB) {
 
 	// Backfill public_id for groups
 
-rows, err := db.Query("SELECT id FROM groups WHERE public_id IS NULL")
+	rows, err := db.Query("SELECT id FROM groups WHERE public_id IS NULL")
 	if err != nil {
 		log.Fatalf("failed to query groups: %v", err)
 	}
@@ -55,7 +55,7 @@ rows, err := db.Query("SELECT id FROM groups WHERE public_id IS NULL")
 
 	// Backfill public_id for group_events
 
-rows, err = db.Query("SELECT id FROM group_events WHERE public_id IS NULL")
+	rows, err = db.Query("SELECT id FROM group_events WHERE public_id IS NULL")
 	if err != nil {
 		log.Fatalf("failed to query group_events: %v", err)
 	}

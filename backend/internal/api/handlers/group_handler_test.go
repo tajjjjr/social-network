@@ -182,9 +182,9 @@ func TestCreateGroup(t *testing.T) {
 
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
-		writer.WriteField("title", "Test Group")
-		writer.WriteField("description", "This is a test group.")
-		writer.WriteField("privacy", "public")
+		_ = writer.WriteField("title", "Test Group")
+		_ = writer.WriteField("description", "This is a test group.")
+		_ = writer.WriteField("privacy", "public")
 		writer.Close()
 
 		req, err := http.NewRequest("POST", "/groups", body)
@@ -218,7 +218,7 @@ func TestCreateGroup(t *testing.T) {
 
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
-		writer.WriteField("title", "Test Group")
+		_ = writer.WriteField("title", "Test Group")
 		writer.Close()
 
 		req, err := http.NewRequest("POST", "/groups", body)
