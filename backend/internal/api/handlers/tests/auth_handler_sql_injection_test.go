@@ -32,12 +32,12 @@ func setupLoginTestDB(t *testing.T) *sql.DB {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			email TEXT UNIQUE NOT NULL,
 			password TEXT NOT NULL,
-			first_name TEXT,
-			last_name TEXT,
-			date_of_birth TEXT,
+			firstname TEXT,
+			lastname TEXT,
+			dateofbirth DATE,
 			nickname TEXT,
-			about_me TEXT,
-			is_profile_public BOOLEAN,
+			aboutme TEXT,
+			is_profile_public INTEGER DEFAULT 1,
 			avatar TEXT,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)
@@ -72,9 +72,9 @@ func createLoginTestUser(t *testing.T, db *sql.DB) {
 	}
 
 	_, err = db.Exec(`
-		INSERT INTO Users (email, password, first_name, last_name, nickname, is_profile_public)
+		INSERT INTO Users (email, password, firstname, lastname, nickname, is_profile_public)
 		VALUES (?, ?, ?, ?, ?, ?)
-	`, "test@example.com", hashedPassword, "Test", "User", "testuser", true)
+	`, "test@example.com", hashedPassword, "Test", "User", "testuser", 1)
 	if err != nil {
 		t.Fatalf("Failed to create test user: %v", err)
 	}
@@ -342,12 +342,12 @@ func setupSignupTestDB(t *testing.T) *sql.DB {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			email TEXT UNIQUE NOT NULL,
 			password TEXT NOT NULL,
-			first_name TEXT,
-			last_name TEXT,
-			date_of_birth TEXT,
+			firstname TEXT,
+			lastname TEXT,
+			dateofbirth DATE,
 			nickname TEXT,
-			about_me TEXT,
-			is_profile_public BOOLEAN,
+			aboutme TEXT,
+			is_profile_public INTEGER DEFAULT 1,
 			avatar TEXT,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)
@@ -432,7 +432,7 @@ func TestSignupHandler_XSSPrevention(t *testing.T) {
 	}
 
 	var firstName, lastName, nickname, aboutMe string
-	err = db.QueryRow("SELECT first_name, last_name, nickname, about_me FROM Users WHERE email = ?", "test@example.com").
+	err = db.QueryRow("SELECT firstname, lastname, nickname, aboutme FROM Users WHERE email = ?", "test@example.com").
 		Scan(&firstName, &lastName, &nickname, &aboutMe)
 	if err != nil {
 		t.Fatalf("Failed to query user: %v", err)
