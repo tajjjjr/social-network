@@ -63,5 +63,3 @@ type PostView struct {
 	Author    *User     `json:"author"`
 	CreatedAt time.Time `json:"created_at"`
 }
-
-

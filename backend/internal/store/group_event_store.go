@@ -2,9 +2,9 @@ package store
 
 import (
 	"database/sql"
-	"time"
 	"github.com/google/uuid"
 	"github.com/tajjjjr/social-network/backend/internal/models"
+	"time"
 )
 
 type GroupEventStore interface {
@@ -67,7 +67,7 @@ func (s *groupEventStore) GetGroupEvents(groupPublicID string) ([]*models.GroupE
 		var event models.GroupEvent
 		var eventDateStr string
 		var idStr string
-		err := rows.Scan(&idStr, &event.PublicID, &event.GroupPubID, &event.CreatorID, &event.Title, 
+		err := rows.Scan(&idStr, &event.PublicID, &event.GroupPubID, &event.CreatorID, &event.Title,
 			&event.Description, &eventDateStr, &event.CreatedAt)
 		if err != nil {
 			return nil, err

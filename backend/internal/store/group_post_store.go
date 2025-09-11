@@ -33,7 +33,7 @@ func (s *groupPostStore) CreateGroupPost(post *models.GroupPost) (*models.GroupP
 	post.PublicID = uuid.New().String()
 	post.CreatedAt = time.Now()
 	post.UpdatedAt = time.Now()
-	
+
 	_, err := s.db.Exec(`
 		INSERT INTO Groups (id, public_id, type, group_id, user_id, content, image, created_at, updated_at)
 		VALUES (?, ?, 'post', ?, ?, ?, ?, ?, ?)
@@ -67,7 +67,7 @@ func (s *groupPostStore) GetGroupPosts(groupID string, userID int64, limit, offs
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	var posts []*models.GroupPost
 	for rows.Next() {
 		var post models.GroupPost
@@ -103,7 +103,7 @@ func (s *groupPostStore) CreateGroupPostComment(comment *models.GroupPostComment
 	comment.PublicID = uuid.New().String()
 	comment.CreatedAt = time.Now()
 	comment.UpdatedAt = time.Now()
-	
+
 	_, err := s.db.Exec(`
 		INSERT INTO Groups (id, public_id, type, group_id, user_id, content, image, created_at, updated_at)
 		VALUES (?, ?, 'comment', ?, ?, ?, ?, ?, ?)
@@ -124,7 +124,7 @@ func (s *groupPostStore) GetGroupPostComments(postPublicID string, userID int64)
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	var comments []*models.GroupPostComment
 	for rows.Next() {
 		var comment models.GroupPostComment
@@ -145,7 +145,7 @@ func (s *groupPostStore) UpdateGroupPostComment(commentPublicID string, userID i
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var comment models.GroupPostComment
 	err = s.db.QueryRow(`
 		SELECT public_id, group_id, user_id, content, COALESCE(image, ''), created_at, updated_at

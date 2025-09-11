@@ -47,7 +47,7 @@ func (s *GroupPostService) CreateGroupPost(post *models.GroupPost, imageData []b
 		}
 		post.Image = imagePath
 	}
-	
+
 	return s.groupPostStore.CreateGroupPost(post)
 }
 
@@ -69,7 +69,7 @@ func (s *GroupPostService) UpdateGroupPost(postPublicID string, userID int64, co
 	if err != nil {
 		return nil, fmt.Errorf("post not found")
 	}
-	
+
 	// Handle image update if provided
 	var imagePath string
 	if len(imageData) > 0 {
@@ -82,7 +82,7 @@ func (s *GroupPostService) UpdateGroupPost(postPublicID string, userID int64, co
 		// Keep existing image if no new image provided
 		imagePath = existingPost.Image
 	}
-	
+
 	return s.groupPostStore.UpdateGroupPost(postPublicID, userID, content, []byte(imagePath), "")
 }
 
@@ -98,7 +98,7 @@ func (s *GroupPostService) CreateGroupPostComment(comment *models.GroupPostComme
 		}
 		comment.Image = imagePath
 	}
-	
+
 	return s.groupPostStore.CreateGroupPostComment(comment)
 }
 
@@ -116,7 +116,7 @@ func (s *GroupPostService) UpdateGroupPostComment(commentPublicID string, userID
 		}
 		imagePath = savedImagePath
 	}
-	
+
 	return s.groupPostStore.UpdateGroupPostComment(commentPublicID, userID, content, []byte(imagePath), "")
 }
 

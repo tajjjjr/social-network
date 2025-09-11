@@ -34,7 +34,7 @@ type GroupPostComment struct {
 	UpdatedAt       time.Time `json:"updated_at"`
 
 	// Additional fields for API responses
-	Author       *User `json:"author,omitempty"`
+	Author       *User  `json:"author,omitempty"`
 	UserReaction string `json:"user_reaction,omitempty"`
 }
 
