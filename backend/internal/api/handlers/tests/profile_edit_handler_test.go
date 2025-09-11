@@ -31,12 +31,12 @@ func setupProfileEditTestDB(t *testing.T) *sql.DB {
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		email TEXT UNIQUE NOT NULL,
 		password TEXT NOT NULL,
-		first_name TEXT,
-		last_name TEXT,
-		date_of_birth TEXT,
+		firstname TEXT,
+		lastname TEXT,
+		dateofbirth DATE,
 		nickname TEXT,
-		about_me TEXT,
-		is_profile_public BOOLEAN DEFAULT 0,
+		aboutme TEXT,
+		is_profile_public INTEGER DEFAULT 1,
 		avatar TEXT,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
@@ -48,7 +48,7 @@ func setupProfileEditTestDB(t *testing.T) *sql.DB {
 
 	// Insert test user
 	insertUser := `
-	INSERT INTO Users (id, email, password, first_name, last_name, date_of_birth, nickname, about_me, is_profile_public, avatar)
+	INSERT INTO Users (id, email, password, firstname, lastname, dateofbirth, nickname, aboutme, is_profile_public, avatar)
 	VALUES (1, 'test@example.com', '$2a$10$hashedpassword', 'John', 'Doe', '1990-01-01', 'johndoe', 'Test bio', 1, 'avatar.jpg');
 	`
 
@@ -58,7 +58,7 @@ func setupProfileEditTestDB(t *testing.T) *sql.DB {
 
 	// Insert another user for email conflict testing
 	insertUser2 := `
-	INSERT INTO Users (id, email, password, first_name, last_name, date_of_birth, nickname, about_me, is_profile_public, avatar)
+	INSERT INTO Users (id, email, password, firstname, lastname, dateofbirth, nickname, aboutme, is_profile_public, avatar)
 	VALUES (2, 'existing@example.com', '$2a$10$hashedpassword', 'Jane', 'Smith', '1992-05-15', 'janesmith', 'Another bio', 0, 'avatar2.jpg');
 	`
 
@@ -109,8 +109,8 @@ func TestEditProfile_Success(t *testing.T) {
 	// Create form data
 	formData := map[string]string{
 		"email":       "updated@example.com",
-		"first_name":   "UpdatedJohn",
-		"last_name":    "UpdatedDoe",
+		"firstname":   "UpdatedJohn",
+		"lastname":    "UpdatedDoe",
 		"dateofbirth": "1991-02-02",
 		"nickname":    "updatedjohndoe",
 		"aboutme":     "Updated bio",
@@ -147,7 +147,7 @@ func TestEditProfile_Success(t *testing.T) {
 
 	// Verify the profile was actually updated in the database
 	var updatedUser models.User
-	err = db.QueryRow("SELECT email, first_name, last_name, date_of_birth, nickname, about_me, is_profile_public FROM Users WHERE id = 1").Scan(
+	err = db.QueryRow("SELECT email, firstname, lastname, dateofbirth, nickname, aboutme, is_profile_public FROM Users WHERE id = 1").Scan(
 		&updatedUser.Email, &updatedUser.FirstName, &updatedUser.LastName,
 		&updatedUser.DateOfBirth, &updatedUser.Nickname, &updatedUser.AboutMe, &updatedUser.IsProfilePublic)
 	if err != nil {
@@ -179,8 +179,8 @@ func TestEditProfile_EmailAlreadyExists(t *testing.T) {
 	// Try to update to an email that already exists (user 2's email)
 	formData := map[string]string{
 		"email":       "existing@example.com", // This email belongs to user 2
-		"first_name":   "UpdatedJohn",
-		"last_name":    "UpdatedDoe",
+		"firstname":   "UpdatedJohn",
+		"lastname":    "UpdatedDoe",
 		"dateofbirth": "1991-02-02",
 		"nickname":    "updatedjohndoe",
 		"aboutme":     "Updated bio",
@@ -227,8 +227,8 @@ func TestEditProfile_SameEmailAllowed(t *testing.T) {
 	// User updating with their own email should be allowed
 	formData := map[string]string{
 		"email":       "test@example.com", // Same email as user 1
-		"first_name":   "UpdatedJohn",
-		"last_name":    "UpdatedDoe",
+		"firstname":   "UpdatedJohn",
+		"lastname":    "UpdatedDoe",
 		"dateofbirth": "1991-02-02",
 		"nickname":    "updatedjohndoe",
 		"aboutme":     "Updated bio",
@@ -286,8 +286,8 @@ func TestEditProfile_InvalidEmail(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			formData := map[string]string{
 				"email":       tc.email,
-				"first_name":   "UpdatedJohn",
-				"last_name":    "UpdatedDoe",
+				"firstname":   "UpdatedJohn",
+				"lastname":    "UpdatedDoe",
 				"dateofbirth": "1991-02-02",
 				"nickname":    "updatedjohndoe",
 				"aboutme":     "Updated bio",
@@ -334,8 +334,8 @@ func TestEditProfile_Unauthorized(t *testing.T) {
 
 	formData := map[string]string{
 		"email":       "updated@example.com",
-		"first_name":   "UpdatedJohn",
-		"last_name":    "UpdatedDoe",
+		"firstname":   "UpdatedJohn",
+		"lastname":    "UpdatedDoe",
 		"dateofbirth": "1991-02-02",
 		"nickname":    "updatedjohndoe",
 		"aboutme":     "Updated bio",
@@ -411,8 +411,8 @@ func TestEditProfile_WithAvatar(t *testing.T) {
 	// Create form data with a small test image
 	formData := map[string]string{
 		"email":       "updated@example.com",
-		"first_name":   "UpdatedJohn",
-		"last_name":    "UpdatedDoe",
+		"firstname":   "UpdatedJohn",
+		"lastname":    "UpdatedDoe",
 		"dateofbirth": "1991-02-02",
 		"nickname":    "updatedjohndoe",
 		"aboutme":     "Updated bio",
@@ -461,8 +461,8 @@ func TestEditProfile_XSSPrevention(t *testing.T) {
 	// Test XSS prevention with malicious input
 	formData := map[string]string{
 		"email":       "test@example.com",
-		"first_name":   "<script>alert('xss')</script>",
-		"last_name":    "<img src=x onerror=alert('xss')>",
+		"firstname":   "<script>alert('xss')</script>",
+		"lastname":    "<img src=x onerror=alert('xss')>",
 		"dateofbirth": "1991-02-02",
 		"nickname":    "<svg onload=alert('xss')>",
 		"aboutme":     "<iframe src='javascript:alert(\"xss\")'></iframe>",
@@ -489,7 +489,7 @@ func TestEditProfile_XSSPrevention(t *testing.T) {
 
 	// Verify that the malicious content was escaped
 	var updatedUser models.User
-	err = db.QueryRow("SELECT first_name, last_name, nickname, about_me FROM Users WHERE id = 1").Scan(
+	err = db.QueryRow("SELECT firstname, lastname, nickname, aboutme FROM Users WHERE id = 1").Scan(
 		&updatedUser.FirstName, &updatedUser.LastName, &updatedUser.Nickname, &updatedUser.AboutMe)
 	if err != nil {
 		t.Fatalf("Failed to query updated user: %v", err)
@@ -533,8 +533,8 @@ func TestEditProfile_ProfileVisibilityToggle(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			formData := map[string]string{
 				"email":       "test@example.com",
-				"first_name":   "John",
-				"last_name":    "Doe",
+				"firstname":   "John",
+				"lastname":    "Doe",
 				"dateofbirth": "1990-01-01",
 				"nickname":    "johndoe",
 				"aboutme":     "Test bio",
