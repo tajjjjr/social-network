@@ -15,10 +15,10 @@ func setupTestDB(t *testing.T) *sql.DB {
 	}
 
 	_, err = db.Exec(`CREATE TABLE Groups (
-		id TEXT PRIMARY KEY,
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		public_id TEXT UNIQUE,
 		type TEXT NOT NULL,
-		group_id TEXT,
+		group_id INTEGER,
 		user_id INTEGER,
 		title TEXT,
 		content TEXT,
@@ -55,7 +55,7 @@ func TestCreateGroup(t *testing.T) {
 		t.Fatalf("CreateGroup failed: %v", err)
 	}
 
-	if createdGroup.ID == "" {
+	if createdGroup.ID == 0 {
 		t.Error("Expected created group to have an ID")
 	}
 

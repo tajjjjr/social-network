@@ -60,7 +60,7 @@ func (s *GroupPostService) GetGroupPosts(publicID string, userID int64, limit, o
 	if err != nil {
 		return nil, err
 	}
-	return s.groupPostStore.GetGroupPosts(group.ID, userID, limit, offset)
+	return s.groupPostStore.GetGroupPosts(group.PublicID, userID, limit, offset)
 }
 
 func (s *GroupPostService) UpdateGroupPost(postPublicID string, userID int64, content string, imageData []byte, imageMimeType string) (*models.GroupPost, error) {

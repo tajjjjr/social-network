@@ -92,7 +92,7 @@ func (m *MockGroupRequestService) SendJoinRequest(groupID string, userID int64) 
 	if m.SendJoinRequestFunc != nil {
 		return m.SendJoinRequestFunc(groupID, userID)
 	}
-	return &models.GroupRequest{ID: "req-1", GroupID: groupID, UserID: userID, Status: "pending"}, nil
+	return &models.GroupRequest{ID: int64(1), PublicID: "req-1", GroupID: groupID, UserID: userID, Status: "pending"}, nil
 }
 
 func (m *MockGroupRequestService) ApproveJoinRequest(requestID int64, approverID int64) error {
@@ -119,7 +119,7 @@ func (m *MockGroupChatMessageService) SendGroupChatMessage(groupID string, sende
 	if m.SendGroupChatMessageFunc != nil {
 		return m.SendGroupChatMessageFunc(groupID, senderID, content)
 	}
-	return &models.GroupChatMessage{PublicID: "msg-1", GroupID: "1", SenderID: senderID, Content: content}, nil
+	return &models.GroupChatMessage{ID: int64(1), PublicID: "msg-1", GroupID: "1", SenderID: senderID, Content: content}, nil
 }
 
 func (m *MockGroupChatMessageService) GetGroupChatMessages(groupID string, userID int64, limit, offset int) ([]*models.GroupChatMessage, error) {
@@ -146,7 +146,7 @@ func (m *MockGroupMemberService) AddGroupMember(groupID string, userID int64, ro
 	if m.AddGroupMemberFunc != nil {
 		return m.AddGroupMemberFunc(groupID, userID, role)
 	}
-	return &models.GroupMember{ID: 1, PublicID: "member-1", GroupID: groupID, UserID: userID, Role: role}, nil
+	return &models.GroupMember{ID: int64(1), PublicID: "member-1", GroupID: groupID, UserID: userID, Role: role}, nil
 }
 
 // MockGroupEventService is a mock implementation of the GroupEventService for testing.
@@ -240,7 +240,7 @@ func TestSendJoinRequest(t *testing.T) {
 	t.Run("Successful join request", func(t *testing.T) {
 		mockGroupRequestService := &MockGroupRequestService{
 			SendJoinRequestFunc: func(groupID string, userID int64) (*models.GroupRequest, error) {
-				return &models.GroupRequest{PublicID: "req-1", GroupID: groupID, UserID: userID, Status: "pending"}, nil
+				return &models.GroupRequest{ID: int64(1), PublicID: "req-1", GroupID: groupID, UserID: userID, Status: "pending"}, nil
 			},
 		}
 

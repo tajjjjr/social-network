@@ -32,7 +32,7 @@ func (s *groupChatMessageService) SendGroupChatMessage(publicID string, senderID
 	}
 
 	message := &models.GroupChatMessage{
-		GroupID:  group.ID,
+		GroupID:  group.PublicID,
 		SenderID: senderID,
 		Content:  content,
 	}

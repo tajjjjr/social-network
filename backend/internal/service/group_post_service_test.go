@@ -96,7 +96,7 @@ func (m *MockGroupStore) GetGroupByID(publicID string) (*models.Group, error) {
 	if m.GetGroupByIDFunc != nil {
 		return m.GetGroupByIDFunc(publicID)
 	}
-	return &models.Group{ID: "1", PublicID: publicID}, nil
+	return &models.Group{ID: int64(1), PublicID: publicID}, nil
 }
 
 func (m *MockGroupStore) SearchPublicGroups(query string) ([]*models.Group, error) {
@@ -184,7 +184,7 @@ func TestGetGroupPosts(t *testing.T) {
 		}
 		mockGroupStore := &MockGroupStore{
 			GetGroupByIDFunc: func(publicID string) (*models.Group, error) {
-				return &models.Group{ID: "1", PublicID: publicID}, nil
+				return &models.Group{ID: int64(1), PublicID: publicID}, nil
 			},
 		}
 		service := NewGroupPostService(mockStore, nil, mockGroupStore)
